@@ -60,6 +60,18 @@ header.nopv .pv{display:none}
 .vu{position:absolute;right:8px;top:10px;bottom:10px;width:6px;border-radius:3px;overflow:hidden;background:linear-gradient(to top,var(--g) 0 66%,var(--lime) 66% 85%,var(--red) 85%)}
 .vu i{position:absolute;inset:0;background:#262626;transform-origin:top;transform:scaleY(1)}
 
+/* Débit LiveU */
+.rate{margin-top:10px;background:var(--card);border-radius:24px;padding:14px 16px 12px;position:relative;overflow:hidden}
+.rh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.rh .lbl{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--sub)}
+.rstate{font-size:12px;font-weight:800;padding:5px 11px;border-radius:999px;background:var(--card3);color:#fff;white-space:nowrap}
+.rv{display:flex;align-items:baseline;gap:6px;margin-top:4px;font-variant-numeric:tabular-nums}
+.rv b{font-size:44px;font-weight:800;letter-spacing:-.045em;line-height:1}
+.rv small{font-size:14px;font-weight:700;color:var(--sub)}
+.rv .rtt{margin-left:auto;font-size:13px;font-weight:700;color:var(--sub)}
+#rGraph{display:block;width:100%;height:64px;margin-top:8px}
+.rnote{font-size:12px;font-weight:600;color:var(--sub);margin-top:6px}
+.rnote:empty{display:none}
 /* Stats */
 .stats{display:flex;align-items:stretch;gap:6px;margin-top:10px}
 .st{flex:1;min-width:0;background:var(--card);border-radius:16px;padding:8px 10px 7px}
@@ -205,9 +217,15 @@ nav button.on{background:#fff;color:var(--ink)}
     <div class="vu"><i id="vuCov"></i></div>
   </div>
   <button class="pvShow" id="pvShow">▸ Afficher le retour image</button>
+  <div class="rate" id="rate">
+    <div class="rh"><span class="lbl" id="rLbl">Débit LiveU · entrée</span><span class="rstate" id="rState">En attente</span></div>
+    <div class="rv"><b id="rKbps">–</b><small>kb/s</small><span class="rtt" id="rRtt"></span></div>
+    <canvas id="rGraph"></canvas>
+    <div class="rnote" id="rNote">En attente des données IRLToolkit…</div>
+  </div>
   <div class="stats">
     <div class="st clk"><b id="clock">--:--</b><span><i class="dot" id="dot"></i>Heure</span></div>
-    <div class="st"><b id="sKbps">–</b><span>kb/s</span></div>
+    <div class="st"><b id="sKbps">–</b><span>Sortie</span></div>
     <div class="st"><b id="sDrop">–</b><span>Perdues</span></div>
     <div class="st"><b id="sCpu">–</b><span>CPU</span></div>
     <button class="eye" id="pvToggle" aria-label="Afficher ou masquer l’image">▣</button>
@@ -328,6 +346,7 @@ const S={ws:null,ok:false,manual:false,retry:0,reqId:0,pending:new Map(),
   trans:[],transCur:'',transDur:null,transFixed:true,
   inputs:[],audio:[],mutes:{},vol:{},drag:{},lv:{},lvT:{},hold:{},heard:{},
   streaming:false,reconnecting:false,dur:0,bytes:null,bt:0,kbps:null,drop:null,cpu:null,
+  ing:null,ingHist:[],ingT:0,ingLow:1000,ingOff:150,connT:0,
   launched:{},playing:{},timers:{},view:'regie',frozen:0,lastThumb:'',sheet:null,pvPause:false};
 
 /* ================= WebSocket OBS v5 ================= */
@@ -360,7 +379,7 @@ function onMsg(msg){
       id.authentication=b64sha(b64sha(cfg.pass+d.authentication.salt)+d.authentication.challenge);
     }
     S.ws.send(JSON.stringify({op:1,d:id}));
-  }else if(msg.op===2){S.ok=true;S.retry=0;setConn('ok');banner('');pvMsg('');loadAll()}
+  }else if(msg.op===2){S.ok=true;S.retry=0;S.connT=Date.now();setConn('ok');banner('');pvMsg('');loadAll()}
   else if(msg.op===7){const p=S.pending.get(d.requestId);if(p){S.pending.delete(d.requestId);d.requestStatus.result?p.res(d.responseData||{}):p.rej(new Error(d.requestStatus.comment||('Erreur '+d.requestStatus.code)))}}
   else if(msg.op===5)onEvent(d.eventType,d.eventData||{});
 }
@@ -432,7 +451,28 @@ function entrySource(){
 const kindOf=n=>{const i=S.inputs.find(x=>x.name===n);return i?i.kind:''};
 
 /* ================= Événements OBS ================= */
+/* IRLToolkit envoie son état (débit des ingests, RTT…) toutes les ~2,5 s.
+   Selon la version, il arrive directement, en CustomEvent ou en VendorEvent : on accepte les trois. */
+function findIrltk(t,d){
+  if(!d||typeof d!=='object')return null;
+  const cands=[d,d.eventData,d.data,d.detail,d.event_data];
+  for(const c of cands){if(c&&Array.isArray(c.ingests))return c}
+  return null;
+}
+function onIrltk(x){
+  S.ingT=Date.now();
+  if(typeof x.low_bitrate_trigger==='number')S.ingLow=x.low_bitrate_trigger;
+  if(typeof x.offline_bitrate_trigger==='number')S.ingOff=x.offline_bitrate_trigger;
+  const list=x.ingests||[];
+  const main=list.find(i=>i.id===x.main_ingest_id)||list.find(i=>(i.router_bitrate||0)>0)||list[0];
+  S.ing=main?{name:main.name||'Ingest',kbps:Math.max(0,Math.round(+main.router_bitrate||0)),rtt:+main.router_rtt,state:main.media_state||'',type:main.type||'',others:list.length-1}:null;
+  S.ingHist.push({t:Date.now(),v:S.ing?S.ing.kbps:0});
+  const cut=Date.now()-60000;while(S.ingHist.length&&S.ingHist[0].t<cut)S.ingHist.shift();
+  if(x.output_status&&typeof x.output_status.stream_status==='boolean'&&!S.reconnecting){S.streaming=x.output_status.stream_status;renderLiveBadge()}
+  renderRate();
+}
 function onEvent(t,d){
+  {const x=findIrltk(t,d);if(x){onIrltk(x);return}}
   switch(t){
     case'CurrentProgramSceneChanged':
       if(d.sceneName!==S.program){if(!isSecours(S.program))S.prev=S.program;S.program=d.sceneName}
@@ -567,6 +607,50 @@ function updateAlert(){
     if(S.audio.includes(src)&&!S.mutes[src]){const s=Math.round((Date.now()-S.heard[src])/1000);if(s>=8)msgs.push('Pas de son sur l’entrée depuis '+s+' s')}
   }
   const a=$('alert');a.textContent=msgs.length?'⚠ '+(S.streaming?'':'Hors live · ')+msgs.join(' · '):'';a.classList.toggle('on',!!msgs.length);a.classList.toggle('soft',!S.streaming);
+}
+
+/* ================= Débit LiveU ================= */
+function rateLevel(k,state){
+  if(k==null)return{txt:'En attente',bg:'var(--card3)',fg:'#fff'};
+  if(k<S.ingOff||/STOPPED|ENDED|ERROR|NONE/.test(state))return{txt:'Plus de signal',bg:'var(--red)',fg:'#fff'};
+  if(k<1000)return{txt:'Critique',bg:'var(--red)',fg:'#fff'};
+  if(k<2500)return{txt:'Compliqué',bg:'var(--orange)',fg:'var(--ink)'};
+  if(k<4000)return{txt:'Correct',bg:'var(--lime)',fg:'var(--ink)'};
+  if(k<6000)return{txt:'Très bien',bg:'var(--g)',fg:'var(--ink)'};
+  return{txt:'Parfait',bg:'var(--g)',fg:'var(--ink)'};
+}
+function renderRate(){
+  const fresh=S.ing&&Date.now()-S.ingT<8000;
+  const k=fresh?S.ing.kbps:null,lv=rateLevel(k,fresh?S.ing.state:'');
+  $('rKbps').textContent=k==null?'–':k.toLocaleString('fr-FR');
+  $('rKbps').style.color=k==null?'':lv.bg;
+  const st=$('rState');st.textContent=lv.txt;st.style.background=lv.bg;st.style.color=lv.fg;
+  $('rRtt').textContent=fresh&&S.ing.rtt>0?'RTT '+Math.round(S.ing.rtt)+' ms':'';
+  $('rLbl').textContent='Débit LiveU · '+(fresh?S.ing.name:'entrée');
+  let note='';
+  if(!S.ok)note='Hors ligne';
+  else if(!S.ingT)note=Date.now()-S.connT>10000?'Aucune donnée reçue d’IRLToolkit. Le débit s’affiche aussi sur le dashboard irl.run.':'En attente des données IRLToolkit…';
+  else if(!fresh)note='Données IRLToolkit interrompues depuis '+Math.round((Date.now()-S.ingT)/1000)+' s';
+  else if(S.ing.others>0)note='Ingest principal affiché ('+(S.ing.others+1)+' ingests au total)';
+  $('rNote').textContent=note;
+  drawRate();
+}
+function drawRate(){
+  const c=$('rGraph'),dpr=window.devicePixelRatio||2,w=c.clientWidth,hh=c.clientHeight;if(!w)return;
+  if(c.width!==Math.round(w*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(hh*dpr)}
+  const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,hh);
+  const now=Date.now(),pts=S.ingHist.filter(p=>now-p.t<=60000);
+  const max=Math.max(7000,...pts.map(p=>p.v))*1.05,y=v=>hh-2-(v/max)*(hh-6),x=t=>w-(now-t)/60000*w;
+  // repères : seuil « low bitrate » et 6000 kb/s
+  g.setLineDash([3,4]);g.lineWidth=1;
+  [[S.ingLow,'rgba(255,138,76,.55)'],[6000,'rgba(43,224,127,.35)']].forEach(([v,col])=>{g.strokeStyle=col;g.beginPath();g.moveTo(0,y(v));g.lineTo(w,y(v));g.stroke()});
+  g.setLineDash([]);
+  if(pts.length<2)return;
+  const last=pts[pts.length-1].v,col=rateLevel(last,'').bg.replace(/var\(--([a-z]+)\)/,(m,n)=>getComputedStyle(document.documentElement).getPropertyValue('--'+n).trim());
+  g.beginPath();pts.forEach((p,i)=>i?g.lineTo(x(p.t),y(p.v)):g.moveTo(x(p.t),y(p.v)));
+  g.lineTo(x(pts[pts.length-1].t),hh);g.lineTo(x(pts[0].t),hh);g.closePath();
+  const grd=g.createLinearGradient(0,0,0,hh);grd.addColorStop(0,col+'55');grd.addColorStop(1,col+'00');g.fillStyle=grd;g.fill();
+  g.beginPath();pts.forEach((p,i)=>i?g.lineTo(x(p.t),y(p.v)):g.moveTo(x(p.t),y(p.v)));g.strokeStyle=col;g.lineWidth=2.2;g.lineJoin='round';g.stroke();
 }
 
 /* ================= Rendu en-tête ================= */
@@ -815,7 +899,7 @@ const clockTxt=()=>new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:
 setInterval(()=>{
   $('clock').textContent=clockTxt();
   if(S.streaming&&!S.reconnecting){S.dur+=1000;renderLiveBadge()}
-  silenceTick();
+  silenceTick();renderRate();
 },1000);
 
 $('clock').textContent=clockTxt();
