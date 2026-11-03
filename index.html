@@ -62,7 +62,7 @@ header.nopv .pv{display:none}
 /* Stats */
 .stats{display:flex;align-items:stretch;gap:6px;margin-top:10px}
 .st{flex:1;min-width:0;background:var(--card);border-radius:16px;padding:8px 10px 7px}
-.st b{display:block;font-size:19px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.st b{display:block;font-size:17px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .st span{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.04em;margin-top:1px}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--sub);flex-shrink:0;display:inline-block}
 .dot.ok{background:var(--g);box-shadow:0 0 6px var(--g)}
@@ -70,12 +70,16 @@ header.nopv .pv{display:none}
 .dot.bad{background:var(--red)}
 .eye{width:46px;flex-shrink:0;border-radius:16px;background:var(--card);font-size:18px;color:var(--g)}
 .eye.off{color:var(--sub)}
+.pvShow{display:none;width:100%;margin-top:10px;height:46px;border-radius:16px;background:var(--card);color:var(--g);font-weight:800;font-size:15px;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--g) 40%,transparent)}
+header.nopv .pvShow{display:block}
+.st.clk{flex:0 0 auto}
 
 .banner{display:none;margin-top:8px;padding:10px 14px;border-radius:16px;background:rgba(255,138,76,.14);color:var(--orange);font-size:13px;font-weight:700}
 .banner.on{display:block}
 .banner.err{background:rgba(255,68,54,.14);color:var(--red)}
 .alert{display:none;margin-top:8px;padding:12px 14px;border-radius:16px;background:var(--red);color:#fff;font-size:14px;font-weight:800;animation:pulse 1.2s infinite}
 .alert.on{display:block}
+.alert.soft{background:rgba(255,138,76,.14);color:var(--orange);animation:none}
 @keyframes pulse{50%{opacity:.72}}
 
 /* ---------- Contenu ---------- */
@@ -204,8 +208,9 @@ nav button.on{background:#fff;color:var(--ink)}
     <div class="pvInfo" id="pvInfo"></div>
     <div class="vu"><i id="vuCov"></i></div>
   </div>
+  <button class="pvShow" id="pvShow">▸ Afficher le retour image</button>
   <div class="stats">
-    <div class="st"><b id="clock">--:--</b><span><i class="dot" id="dot"></i>Heure</span></div>
+    <div class="st clk"><b id="clock">--:--</b><span><i class="dot" id="dot"></i>Heure</span></div>
     <div class="st"><b id="sKbps">–</b><span>kb/s</span></div>
     <div class="st"><b id="sDrop">–</b><span>Perdues</span></div>
     <div class="st"><b id="sCpu">–</b><span>CPU</span></div>
@@ -264,7 +269,7 @@ const defaults={host:/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)?location.hos
   autoHide:true,pvOn:true,pvMode:'prog',pvQ:'std',dur:{},names:{}};
 let cfg=JSON.parse(JSON.stringify(defaults));
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('regie-obs-v1')||'{}'))}catch(e){}
-cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};
+cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};cfg.pvOn=true;cfg.pass=String(cfg.pass||'').trim();cfg.host=String(cfg.host||'').trim();
 function saveCfg(){try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}
 const QUAL={eco:{w:480,q:55,fps:1},std:{w:960,q:72,fps:3},hd:{w:1280,q:82,fps:5}};
 const MEDIA=['ffmpeg_source','vlc_source'];
@@ -504,6 +509,7 @@ $('seg').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b
   cfg.pvMode=b.dataset.m;saveCfg();$('pvImg').removeAttribute('src');pvFrames=[];pvBytes=[];renderPvTag()});
 $('pv').addEventListener('click',()=>{if(!S.ok)return;S.pvPause=!S.pvPause;pvMsg(S.pvPause?'⏸ Aperçu en pause, toucher pour reprendre':'');if(S.pvPause)$('pvInfo').textContent=''});
 $('pvToggle').onclick=()=>{haptic();cfg.pvOn=!cfg.pvOn;saveCfg();applyPvOn()};
+$('pvShow').onclick=()=>{haptic();cfg.pvOn=true;saveCfg();applyPvOn()};
 
 /* Détection d'image figée sur l'entrée */
 async function frozenLoop(){
@@ -524,7 +530,7 @@ function updateAlert(){
     if(S.frozen>=3)msgs.push('Image de l’entrée figée depuis '+(S.frozen*2)+' s');
     if(S.audio.includes(src)&&!S.mutes[src]){const s=Math.round((Date.now()-S.heard[src])/1000);if(s>=8)msgs.push('Pas de son sur l’entrée depuis '+s+' s')}
   }
-  const a=$('alert');a.textContent=msgs.length?'⚠ '+msgs.join(' · '):'';a.classList.toggle('on',!!msgs.length);
+  const a=$('alert');a.textContent=msgs.length?'⚠ '+(S.streaming?'':'Hors live · ')+msgs.join(' · '):'';a.classList.toggle('on',!!msgs.length);a.classList.toggle('soft',!S.streaming);
 }
 
 /* ================= Rendu en-tête ================= */
