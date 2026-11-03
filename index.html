@@ -56,6 +56,7 @@ header.nopv .pv{display:none}
 .pvTag.prog{background:var(--red)}
 .pvInfo{position:absolute;right:22px;bottom:10px;font-size:11px;font-weight:700;color:#ddd;background:rgba(10,10,10,.72);padding:6px 10px;border-radius:999px;font-variant-numeric:tabular-nums;box-shadow:inset 0 0 0 1.5px rgba(43,224,127,.55)}
 .pvInfo::after{content:' ▾';color:var(--g)}
+.pvInfo select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;-webkit-appearance:none;appearance:none;cursor:pointer}
 .vu{position:absolute;right:8px;top:10px;bottom:10px;width:6px;border-radius:3px;overflow:hidden;background:linear-gradient(to top,var(--g) 0 66%,var(--lime) 66% 85%,var(--red) 85%)}
 .vu i{position:absolute;inset:0;background:#262626;transform-origin:top;transform:scaleY(1)}
 
@@ -200,7 +201,7 @@ nav button.on{background:#fff;color:var(--ink)}
     <div class="pvMsg" id="pvMsg">Connexion…</div>
     <div class="seg" id="seg"><button data-m="prog">Programme</button><button data-m="in">Entrée</button></div>
     <div class="pvTag" id="pvTag"></div>
-    <button class="pvInfo" id="pvInfo" aria-label="Changer les images par seconde">3 img/s</button>
+    <label class="pvInfo"><span id="pvInfo">3 img/s</span><select id="pvFpsSel" aria-label="Images par seconde du retour"></select></label>
     <div class="vu"><i id="vuCov"></i></div>
   </div>
   <button class="pvShow" id="pvShow">▸ Afficher le retour image</button>
@@ -536,11 +537,13 @@ function applyPvOn(){$('hdr').classList.toggle('nopv',!cfg.pvOn);$('pvToggle').c
 $('seg').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;e.stopPropagation();haptic();
   cfg.pvMode=b.dataset.m;saveCfg();$('pvImg').removeAttribute('src');pvFrames=[];pvBytes=[];renderPvTag()});
 $('pv').addEventListener('click',()=>{if(!S.ok)return;S.pvPause=!S.pvPause;pvMsg(S.pvPause?'⏸ Aperçu en pause, toucher pour reprendre':'');if(S.pvPause)$('pvInfo').textContent=(cfg.pvFps||3)+' img/s'});
-/* Toucher le compteur : passe au nombre d'images/s suivant */
-$('pvInfo').addEventListener('click',e=>{e.stopPropagation();haptic();
-  const i=FPS.indexOf(+cfg.pvFps||3);cfg.pvFps=FPS[(i+1)%FPS.length];saveCfg();pvFrames=[];pvBytes=[];
-  $('pvInfo').textContent=cfg.pvFps+' img/s';toast('Retour image : '+cfg.pvFps+' images/s');
-  if(S.pvPause){S.pvPause=false;pvMsg('')}});
+/* Menu déroulant des images/s sur l'aperçu */
+$('pvFpsSel').innerHTML=FPS.map(f=>`<option value="${f}">${f} image${f>1?'s':''}/s${f===3?' (conseillé en festival)':f>=25?' (Wi-Fi conseillé)':''}</option>`).join('');
+$('pvFpsSel').value=String(cfg.pvFps||3);
+$('pvFpsSel').addEventListener('click',e=>e.stopPropagation());
+$('pvFpsSel').closest('label').addEventListener('click',e=>e.stopPropagation());
+$('pvFpsSel').addEventListener('change',e=>{haptic();cfg.pvFps=+e.target.value||3;saveCfg();pvFrames=[];pvBytes=[];
+  $('pvInfo').textContent=cfg.pvFps+' img/s';toast('Retour image : '+cfg.pvFps+' images/s');if(S.pvPause){S.pvPause=false;pvMsg('')}});
 $('pvToggle').onclick=()=>{haptic();cfg.pvOn=!cfg.pvOn;saveCfg();applyPvOn()};
 $('pvShow').onclick=()=>{haptic();cfg.pvOn=true;saveCfg();applyPvOn()};
 
@@ -796,7 +799,7 @@ $('fSave').onclick=()=>{
   const nh=$('fHost').value.trim(),np=$('fPort').value.trim()||'4455',npw=$('fPass').value.trim();
   const changed=cfg.host!==nh||cfg.port!==np||cfg.pass!==npw;
   cfg.host=nh;cfg.port=np;cfg.pass=npw;
-  cfg.entry=$('fEntry').value;cfg.autoHide=$('fAuto').checked;cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;saveCfg();
+  cfg.entry=$('fEntry').value;cfg.autoHide=$('fAuto').checked;cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;$('pvFpsSel').value=String(cfg.pvFps);$('pvInfo').textContent=cfg.pvFps+' img/s';saveCfg();
   $('sheet').classList.remove('on');renderPanic();renderPvTag();renderAudio();renderRegie();S.frozen=0;S.lastThumb='';
   if(changed||!S.ok){S.retry=0;connect()}else toast('Réglages enregistrés');
 };
