@@ -237,10 +237,19 @@ nav button.on{background:#fff;color:var(--ink)}
     <div class="field"><label>Port (ignoré avec ws:// ou wss://)</label><input id="fPort" inputmode="numeric" placeholder="4455"></div>
     <div class="field"><label>Mot de passe WebSocket</label><input id="fPass" type="password" autocapitalize="off" autocorrect="off" placeholder="••••••"></div>
     <div class="field"><label>Source d’entrée (flux du LiveU)</label><select id="fEntry"></select></div>
-    <div class="field"><label>Qualité du retour image</label><select id="fQ">
-      <option value="eco">Éco : 1 image/s, très peu de data</option>
-      <option value="std">Normal : 3 images/s, image nette</option>
-      <option value="hd">Max : 5 images/s, beaucoup de data</option>
+    <div class="field"><label>Netteté du retour image</label><select id="fQ">
+      <option value="eco">Éco : 480 px, léger</option>
+      <option value="std">Normal : 960 px, net</option>
+      <option value="hd">Max : 1280 px, très net, lourd</option>
+    </select></div>
+    <div class="field"><label>Images par seconde du retour</label><select id="fFps">
+      <option value="1">1 image/s : quasi pas de data</option>
+      <option value="3">3 images/s : conseillé en festival</option>
+      <option value="5">5 images/s</option>
+      <option value="10">10 images/s</option>
+      <option value="15">15 images/s</option>
+      <option value="25">25 images/s : très gourmand</option>
+      <option value="50">50 images/s : maximum, Wi-Fi conseillé</option>
     </select></div>
     <label class="check">Masquer les vidéos à la fin<input type="checkbox" switch id="fAuto"></label>
     <button class="btn" id="fSave">Enregistrer et connecter</button>
@@ -261,7 +270,7 @@ nav button.on{background:#fff;color:var(--ink)}
 /* ================= Réglages ================= */
 const KEY='regie-obs-v2';
 const defaults={host:/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)?location.hostname:'',port:'4455',pass:'',secours:'',entry:'',
-  autoHide:true,pvOn:true,pvMode:'prog',pvQ:'std',dur:{},names:{}};
+  autoHide:true,pvOn:true,pvMode:'prog',pvQ:'std',pvFps:3,dur:{},names:{}};
 let cfg=JSON.parse(JSON.stringify(defaults));
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('regie-obs-v1')||'{}'))}catch(e){}
 cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};cfg.pvOn=true;cfg.pass=String(cfg.pass||'').trim();cfg.host=String(cfg.host||'').trim();
@@ -271,7 +280,8 @@ try{const hs=location.hash.slice(1);if(hs&&hs!==cfg.lastHash){const p=new URLSea
   for(const k of['host','pass','port','entry','secours'])if(p.has(k)){cfg[k]=p.get(k).trim();fromLink=true}
   if(fromLink){cfg.lastHash=hs;try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}}}catch(e){}
 function saveCfg(){try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}
-const QUAL={eco:{w:480,q:55,fps:1},std:{w:960,q:72,fps:3},hd:{w:1280,q:82,fps:5}};
+const QUAL={eco:{w:480,q:55},std:{w:960,q:72},hd:{w:1280,q:82}};
+const FPS=[1,3,5,10,15,25,50];
 const MEDIA=['ffmpeg_source','vlc_source'];
 const PAL=['#2BE07F','#C8F169','#9FE3C8','#B9AEFF','#F7C8DD','#FFD45E','#D8CAB6','#FF8A4C'];
 
@@ -314,6 +324,7 @@ const b64sha=s=>btoa(String.fromCharCode(...sha256(new TextEncoder().encode(s)))
 /* ================= État ================= */
 const S={ws:null,ok:false,manual:false,retry:0,reqId:0,pending:new Map(),
   scenes:[],program:'',prev:'',containers:[],tiles:[],sceneFx:[],
+  trans:[],transCur:'',transDur:null,transFixed:true,
   inputs:[],audio:[],mutes:{},vol:{},drag:{},lv:{},lvT:{},hold:{},heard:{},
   streaming:false,reconnecting:false,dur:0,bytes:null,bt:0,kbps:null,drop:null,cpu:null,
   launched:{},playing:{},timers:{},view:'regie',frozen:0,lastThumb:'',sheet:null,pvPause:false};
@@ -365,6 +376,7 @@ function req(type,data){
 async function loadAll(){
   try{await loadScenes()}catch(e){toast(e.message)}
   try{await loadInputs()}catch(e){}
+  try{await loadTransitions()}catch(e){}
   try{await loadAssets()}catch(e){}
   pollStats();
 }
@@ -377,6 +389,12 @@ async function loadScenes(){
 async function itemsOf(name,isGroup){
   const r=await req(isGroup?'GetGroupSceneItemList':'GetSceneItemList',{sceneName:name});
   return r.sceneItems.slice().sort((a,b)=>b.sceneItemIndex-a.sceneItemIndex);
+}
+async function loadTransitions(){
+  const r=await req('GetSceneTransitionList');
+  S.trans=r.transitions||[];S.transCur=r.currentSceneTransitionName||'';
+  try{const c=await req('GetCurrentSceneTransition');S.transCur=c.transitionName;S.transDur=c.transitionDuration;S.transFixed=!!c.transitionFixed}catch(e){}
+  renderRegie();
 }
 const isSceneItem=it=>it.sourceType==='OBS_SOURCE_TYPE_SCENE'||!!it.isGroup;
 async function loadAssets(){
@@ -419,6 +437,8 @@ function onEvent(t,d){
     case'CurrentProgramSceneChanged':
       if(d.sceneName!==S.program){if(!isSecours(S.program))S.prev=S.program;S.program=d.sceneName}
       renderRegie();renderPanic();renderPvTag();loadAssets().catch(()=>{});break;
+    case'CurrentSceneTransitionChanged':S.transCur=d.transitionName;loadTransitions().catch(()=>{});break;
+    case'CurrentSceneTransitionDurationChanged':S.transDur=d.transitionDuration;renderRegie();break;
     case'SceneListChanged':case'SceneNameChanged':case'SceneCreated':case'SceneRemoved':
       loadScenes().catch(()=>{});break;
     case'SceneItemEnableStateChanged':
@@ -476,27 +496,38 @@ async function pollStats(){
 }
 
 /* ================= Retour image ================= */
-let pvFrames=[],pvBytes=[];
-async function pvLoop(){
+let pvFrames=[],pvBytes=[],pvSeq=0,pvShown=0,pvSlow=0;
+const MAXW=4;
+function pvWorkers(fps){if(pvSlow>0)return 1;return fps<=5?1:fps<=15?2:MAXW}
+async function pvWorker(id){
   for(;;){
     if(!S.ok||!cfg.pvOn||document.hidden||S.pvPause){await sleep(300);continue}
+    const fps=+cfg.pvFps||3,n=pvWorkers(fps);
+    if(id>=n){await sleep(400);continue}
     const q=QUAL[cfg.pvQ]||QUAL.std;
     const src=cfg.pvMode==='in'?entrySource():S.program;
-    if(!src){pvMsg(cfg.pvMode==='in'?'Choisis la source d’entrée (LiveU) dans les réglages ⚙︎':'');await sleep(800);continue}
-    const t0=performance.now();
+    if(!src){if(id===0)pvMsg(cfg.pvMode==='in'?'Choisis la source d’entrée (LiveU) dans les réglages ⚙︎':'');await sleep(800);continue}
+    const t0=performance.now(),my=++pvSeq;
     try{
       const r=await req('GetSourceScreenshot',{sourceName:src,imageFormat:'jpg',imageWidth:pvWidth(q),imageCompressionQuality:q.q});
-      $('pvImg').src=r.imageData.replace(/^data:image\/[a-z]+/,'data:image/jpeg');
-      if($('pvMsg').textContent&&!S.pvPause)pvMsg('');
-      const now=performance.now();pvFrames.push(now);pvBytes.push(r.imageData.length*.75);
-      while(pvFrames.length&&now-pvFrames[0]>3000){pvFrames.shift();pvBytes.shift()}
-      const span=Math.max(1,(now-pvFrames[0])/1000),fps=pvFrames.length>1?(pvFrames.length-1)/span:0;
-      const kbs=pvBytes.reduce((a,b)=>a+b,0)/Math.max(span,1)/1024;
-      $('pvInfo').textContent=fps.toFixed(1).replace('.',',')+' img/s · '+Math.round(kbs)+' ko/s';
-    }catch(e){if(S.ok)pvMsg('Aperçu indisponible ('+e.message+')')}
-    await sleep(Math.max(40,1000/q.fps-(performance.now()-t0)));
+      const rtt=performance.now()-t0;
+      // Réseau saturé : on repasse sur une seule requête à la fois pour ne pas gêner les commandes
+      if(rtt>1500)pvSlow=10;else if(pvSlow>0)pvSlow--;
+      if(my>pvShown){
+        pvShown=my;
+        $('pvImg').src=r.imageData.replace(/^data:image\/[a-z]+/,'data:image/jpeg');
+        if($('pvMsg').textContent&&!S.pvPause)pvMsg('');
+        const now=performance.now();pvFrames.push(now);pvBytes.push(r.imageData.length*.75);
+        while(pvFrames.length&&now-pvFrames[0]>2000){pvFrames.shift();pvBytes.shift()}
+        const span=Math.max(.5,(now-pvFrames[0])/1000),got=pvFrames.length>1?(pvFrames.length-1)/span:0;
+        const kbs=pvBytes.reduce((a,b)=>a+b,0)/Math.max(span,1)/1024;
+        $('pvInfo').textContent=Math.round(got)+'/'+fps+' img/s · '+(kbs>=1000?(kbs/1024).toFixed(1).replace('.',',')+' Mo/s':Math.round(kbs)+' ko/s');
+      }
+    }catch(e){if(S.ok&&id===0)pvMsg('Aperçu indisponible ('+e.message+')')}
+    await sleep(Math.max(5,n*1000/fps-(performance.now()-t0)));
   }
 }
+function pvLoop(){for(let i=0;i<MAXW;i++)pvWorker(i)}
 function pvMsg(t){$('pvMsg').textContent=t;if(t)$('pvImg').removeAttribute('src')}
 function renderPvTag(){
   const tag=$('pvTag');
@@ -564,6 +595,11 @@ function renderRegie(){
   const list=S.scenes.filter(n=>!n.startsWith('_'));
   let h=`<h2 class="big"><b>Scènes</b><span>${list.length} au total</span></h2><div class="grid">`+list.map((n,i)=>{const p=n===S.program;
     return`<button class="scene${p?' prog':''}" data-scene="${esc(n)}"><div class="tt"><span class="idx">${String(i+1).padStart(2,'0')}</span><span class="arr">${p?'ON AIR':'↗'}</span></div><div class="n">${esc(n)}</div></button>`}).join('')+'</div>';
+  if(S.trans.length){
+    h+='<div class="cat" style="--c:var(--lilac)"><i></i>Transition</div><div class="chips">'+S.trans.map((t,i)=>`<button class="chip${t.transitionName===S.transCur?' on':''}" data-tr="${i}">${t.transitionName===S.transCur?'✓ ':''}${esc(t.transitionName)}</button>`).join('')+'</div>';
+    if(!S.transFixed&&S.transDur!=null){const ds=[150,300,500,800,1000,2000];if(!ds.includes(S.transDur))ds.push(S.transDur);ds.sort((a,b)=>a-b);
+      h+='<div class="chips" style="margin-top:8px">'+ds.map(ms=>`<button class="chip${ms===S.transDur?' on':''}" data-trd="${ms}">${ms<1000?ms+' ms':(ms/1000).toString().replace('.',',')+' s'}</button>`).join('')+'</div>'}
+  }
   if(S.sceneFx.length)h+='<div class="cat" style="--c:var(--g)"><i></i>Effets sur la scène</div><div class="chips">'+S.sceneFx.map((f,i)=>`<button class="chip${f.filterEnabled?' on':''}" data-fx="${i}">${f.filterEnabled?'✓ ':''}${esc(f.filterName)}</button>`).join('')+'</div>';
   S.tiles=[];const cats=new Map(),groups=[];
   S.containers.forEach((c,ci)=>c.items.forEach(it=>{
@@ -619,6 +655,10 @@ $('v-regie').addEventListener('click',async e=>{
   const sc=e.target.closest('[data-scene]');if(sc){goScene(sc.dataset.scene);return}
   const fx=e.target.closest('[data-fx]');if(fx){const f=S.sceneFx[+fx.dataset.fx];if(!f)return;haptic();
     try{await req('SetSourceFilterEnabled',{sourceName:S.program,filterName:f.filterName,filterEnabled:!f.filterEnabled})}catch(err){toast('Erreur : '+err.message)}return}
+  const tr=e.target.closest('[data-tr]');if(tr){const t=S.trans[+tr.dataset.tr];if(!t)return;haptic();
+    try{await req('SetCurrentSceneTransition',{transitionName:t.transitionName});toast('Transition : '+t.transitionName)}catch(err){toast('Erreur : '+err.message)}return}
+  const td=e.target.closest('[data-trd]');if(td){haptic();
+    try{await req('SetCurrentSceneTransitionDuration',{transitionDuration:+td.dataset.trd});S.transDur=+td.dataset.trd;renderRegie()}catch(err){toast('Erreur : '+err.message)}return}
   const mo=e.target.closest('[data-more]');if(mo){openDetail(+mo.dataset.more);return}
   const ti=e.target.closest('[data-i]');if(ti)tapTile(+ti.dataset.i);
 });
@@ -747,7 +787,7 @@ function silenceTick(){
 function fillSelects(){
   $('fEntry').innerHTML='<option value="">Auto (nom avec « LiveU », « SRT », « Ingest »…)</option>'+S.inputs.map(i=>`<option${i.name===cfg.entry?' selected':''}>${esc(i.name)}</option>`).join('');
 }
-function openSettings(){$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fQ').value=cfg.pvQ;fillSelects();$('sheet').classList.add('on')}
+function openSettings(){$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fQ').value=cfg.pvQ;$('fFps').value=String(cfg.pvFps||3);fillSelects();$('sheet').classList.add('on')}
 $('gear').onclick=openSettings;
 $('fLink').onclick=async()=>{
   haptic();const p=new URLSearchParams();p.set('host',cfg.host);p.set('pass',cfg.pass);
@@ -763,7 +803,7 @@ $('fSave').onclick=()=>{
   const nh=$('fHost').value.trim(),np=$('fPort').value.trim()||'4455',npw=$('fPass').value.trim();
   const changed=cfg.host!==nh||cfg.port!==np||cfg.pass!==npw;
   cfg.host=nh;cfg.port=np;cfg.pass=npw;
-  cfg.entry=$('fEntry').value;cfg.autoHide=$('fAuto').checked;cfg.pvQ=$('fQ').value;saveCfg();
+  cfg.entry=$('fEntry').value;cfg.autoHide=$('fAuto').checked;cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;saveCfg();
   $('sheet').classList.remove('on');renderPanic();renderPvTag();renderAudio();renderRegie();S.frozen=0;S.lastThumb='';
   if(changed||!S.ok){S.retry=0;connect()}else toast('Réglages enregistrés');
 };
