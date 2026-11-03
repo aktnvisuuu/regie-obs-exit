@@ -251,6 +251,8 @@ nav button.on{background:#fff;color:var(--ink)}
     </select></div>
     <label class="check">Masquer les vidéos à la fin<input type="checkbox" switch id="fAuto"></label>
     <button class="btn" id="fSave">Enregistrer et connecter</button>
+    <button class="btn ghost" id="fLink">🔗 Copier mon lien de connexion</button>
+    <div class="field" id="fLinkBox" style="display:none"><label>Lien (garde-le pour toi : il contient le mot de passe)</label><input id="fLinkOut" readonly></div>
     <button class="btn ghost" id="fReload">Recharger scènes et sources</button>
     <button class="btn ghost" id="fClose">Fermer</button>
   </div>
@@ -270,6 +272,11 @@ const defaults={host:/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)?location.hos
 let cfg=JSON.parse(JSON.stringify(defaults));
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('regie-obs-v1')||'{}'))}catch(e){}
 cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};cfg.pvOn=true;cfg.pass=String(cfg.pass||'').trim();cfg.host=String(cfg.host||'').trim();
+/* Lien de connexion : #host=…&pass=… (le # n'est jamais envoyé au serveur GitHub) */
+let fromLink=false;
+try{const hs=location.hash.slice(1);if(hs&&hs!==cfg.lastHash){const p=new URLSearchParams(hs);
+  for(const k of['host','pass','port','entry','secours'])if(p.has(k)){cfg[k]=p.get(k).trim();fromLink=true}
+  if(fromLink){cfg.lastHash=hs;try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}}}catch(e){}
 function saveCfg(){try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}
 const QUAL={eco:{w:480,q:55,fps:1},std:{w:960,q:72,fps:3},hd:{w:1280,q:82,fps:5}};
 const MEDIA=['ffmpeg_source','vlc_source'];
@@ -758,6 +765,13 @@ function fillSelects(){
 }
 function openSettings(){$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fQ').value=cfg.pvQ;fillSelects();$('sheet').classList.add('on')}
 $('gear').onclick=openSettings;
+$('fLink').onclick=async()=>{
+  haptic();const p=new URLSearchParams();p.set('host',cfg.host);p.set('pass',cfg.pass);
+  if(cfg.entry)p.set('entry',cfg.entry);if(cfg.secours)p.set('secours',cfg.secours);
+  const url=location.origin+location.pathname+'#'+p.toString();
+  $('fLinkBox').style.display='block';$('fLinkOut').value=url;
+  try{await navigator.clipboard.writeText(url);toast('Lien copié')}catch(e){$('fLinkOut').select();toast('Sélectionne et copie le lien')}
+};
 $('fClose').onclick=()=>$('sheet').classList.remove('on');
 $('fReload').onclick=()=>{haptic();$('sheet').classList.remove('on');if(S.ok){loadAll();toast('Rechargé')}else connect()};
 $('sheet').addEventListener('click',e=>{if(e.target.id==='sheet')$('sheet').classList.remove('on')});
@@ -787,6 +801,7 @@ setInterval(()=>{
 $('clock').textContent=clockTxt();
 applyPvOn();renderPvTag();renderRegie();renderAudio();renderStats();renderLiveBadge();wake();
 requestAnimationFrame(meterFrame);pvLoop();frozenLoop();
+if(fromLink)setTimeout(()=>toast('Connexion configurée par le lien'),400);
 if(cfg.host)connect();else{pvMsg('Configure la connexion ⚙︎');openSettings()}
 </script>
 </body>
