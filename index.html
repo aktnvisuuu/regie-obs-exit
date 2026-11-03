@@ -376,7 +376,6 @@ function req(type,data){
 async function loadAll(){
   try{await loadScenes()}catch(e){toast(e.message)}
   try{await loadInputs()}catch(e){}
-  try{await loadTransitions()}catch(e){}
   try{await loadAssets()}catch(e){}
   pollStats();
 }
@@ -437,8 +436,6 @@ function onEvent(t,d){
     case'CurrentProgramSceneChanged':
       if(d.sceneName!==S.program){if(!isSecours(S.program))S.prev=S.program;S.program=d.sceneName}
       renderRegie();renderPanic();renderPvTag();loadAssets().catch(()=>{});break;
-    case'CurrentSceneTransitionChanged':S.transCur=d.transitionName;loadTransitions().catch(()=>{});break;
-    case'CurrentSceneTransitionDurationChanged':S.transDur=d.transitionDuration;renderRegie();break;
     case'SceneListChanged':case'SceneNameChanged':case'SceneCreated':case'SceneRemoved':
       loadScenes().catch(()=>{});break;
     case'SceneItemEnableStateChanged':
@@ -595,11 +592,6 @@ function renderRegie(){
   const list=S.scenes.filter(n=>!n.startsWith('_'));
   let h=`<h2 class="big"><b>Scènes</b><span>${list.length} au total</span></h2><div class="grid">`+list.map((n,i)=>{const p=n===S.program;
     return`<button class="scene${p?' prog':''}" data-scene="${esc(n)}"><div class="tt"><span class="idx">${String(i+1).padStart(2,'0')}</span><span class="arr">${p?'ON AIR':'↗'}</span></div><div class="n">${esc(n)}</div></button>`}).join('')+'</div>';
-  if(S.trans.length){
-    h+='<div class="cat" style="--c:var(--lilac)"><i></i>Transition</div><div class="chips">'+S.trans.map((t,i)=>`<button class="chip${t.transitionName===S.transCur?' on':''}" data-tr="${i}">${t.transitionName===S.transCur?'✓ ':''}${esc(t.transitionName)}</button>`).join('')+'</div>';
-    if(!S.transFixed&&S.transDur!=null){const ds=[150,300,500,800,1000,2000];if(!ds.includes(S.transDur))ds.push(S.transDur);ds.sort((a,b)=>a-b);
-      h+='<div class="chips" style="margin-top:8px">'+ds.map(ms=>`<button class="chip${ms===S.transDur?' on':''}" data-trd="${ms}">${ms<1000?ms+' ms':(ms/1000).toString().replace('.',',')+' s'}</button>`).join('')+'</div>'}
-  }
   if(S.sceneFx.length)h+='<div class="cat" style="--c:var(--g)"><i></i>Effets sur la scène</div><div class="chips">'+S.sceneFx.map((f,i)=>`<button class="chip${f.filterEnabled?' on':''}" data-fx="${i}">${f.filterEnabled?'✓ ':''}${esc(f.filterName)}</button>`).join('')+'</div>';
   S.tiles=[];const cats=new Map(),groups=[];
   S.containers.forEach((c,ci)=>c.items.forEach(it=>{
@@ -655,10 +647,6 @@ $('v-regie').addEventListener('click',async e=>{
   const sc=e.target.closest('[data-scene]');if(sc){goScene(sc.dataset.scene);return}
   const fx=e.target.closest('[data-fx]');if(fx){const f=S.sceneFx[+fx.dataset.fx];if(!f)return;haptic();
     try{await req('SetSourceFilterEnabled',{sourceName:S.program,filterName:f.filterName,filterEnabled:!f.filterEnabled})}catch(err){toast('Erreur : '+err.message)}return}
-  const tr=e.target.closest('[data-tr]');if(tr){const t=S.trans[+tr.dataset.tr];if(!t)return;haptic();
-    try{await req('SetCurrentSceneTransition',{transitionName:t.transitionName});toast('Transition : '+t.transitionName)}catch(err){toast('Erreur : '+err.message)}return}
-  const td=e.target.closest('[data-trd]');if(td){haptic();
-    try{await req('SetCurrentSceneTransitionDuration',{transitionDuration:+td.dataset.trd});S.transDur=+td.dataset.trd;renderRegie()}catch(err){toast('Erreur : '+err.message)}return}
   const mo=e.target.closest('[data-more]');if(mo){openDetail(+mo.dataset.more);return}
   const ti=e.target.closest('[data-i]');if(ti)tapTile(+ti.dataset.i);
 });
