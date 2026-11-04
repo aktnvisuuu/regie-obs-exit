@@ -177,6 +177,14 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 .splog{font-size:12px;font-weight:600;color:var(--sub);margin-top:10px;font-variant-numeric:tabular-nums}
 .splog:empty{display:none}
 .btn.sp{background:#1ED760;color:var(--ink)}
+.snrow{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
+.snrow:last-child{border-bottom:0}
+.snrow .nn{font-size:13px;font-weight:800;color:var(--g);width:22px;flex-shrink:0;font-variant-numeric:tabular-nums}
+.snrow .tt{flex:1;min-width:0;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snrow .tt small{display:block;font-size:12px;font-weight:600;color:var(--sub)}
+.snrow input{width:92px;flex-shrink:0;background:var(--card2);border:0;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:8px 10px;outline:none}
+#snList{margin-top:8px}
+#pilTitle,#pilSub{white-space:normal;overflow:visible}
 /* ---------- Pied ---------- */
 footer{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;z-index:5;padding:22px 16px calc(env(safe-area-inset-bottom) + 6px);background:linear-gradient(to top,var(--bg) 55%,rgba(10,10,10,0));pointer-events:none}
 footer nav{pointer-events:auto}
@@ -257,11 +265,31 @@ nav button.on{background:#fff;color:var(--ink)}
       <button class="btn sp" id="spConnect">Connecter Spotify</button>
     </div>
     <div class="spc">
-      <label class="check" style="margin-top:0">Lier la lecture Spotify à OBS<input type="checkbox" switch id="spOn"></label>
-      <div class="field"><label>Scène</label><select id="spScene"></select></div>
-      <div class="field"><label>Source affichée pendant la lecture</label><select id="spSource"></select></div>
+      <div class="rh"><span class="lbl">Pilote OBS · version robuste</span><span class="rstate" id="pilSt">Pas installé</span></div>
+      <div class="sptt" id="pilTitle" style="font-size:17px">Le pilote tourne dans ton OBS cloud, même téléphone verrouillé.</div>
+      <div class="spar" id="pilSub"></div>
+    </div>
+    <div class="spc">
+      <div class="rh"><span class="lbl">1 · Playlist</span></div>
+      <div class="field"><label>Lien de la playlist</label><input id="snPl" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://open.spotify.com/playlist/…"></div>
+      <button class="btn ghost" id="snLoad">Charger la playlist</button>
+      <div class="spar" id="snCount" style="margin-top:8px"></div>
+    </div>
+    <div class="spc">
+      <div class="rh"><span class="lbl">2 · Fichiers sur le serveur</span></div>
+      <div class="field"><label>Dossier des fichiers (dependencies)</label><input id="snDir" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="/…/dependencies"></div>
+      <div class="field"><label>Extension des fichiers</label><select id="snExt"><option>.mp4</option><option>.mov</option><option>.webm</option><option>.mkv</option></select></div>
+      <p class="note" style="margin:10px 4px 0">Nomme tes fichiers 01, 02, 03… dans l’ordre de la playlist (ex. 01.mp4). Tu peux corriger un nom dans la liste.</p>
+      <div id="snList"></div>
+    </div>
+    <div class="spc">
+      <div class="rh"><span class="lbl">3 · Création dans OBS</span></div>
+      <div class="field"><label>Placer la scène SONS</label><select id="snPos"><option value="front">Devant l’ingest (visible par-dessus)</option><option value="back">Derrière l’ingest</option></select></div>
+      <h4 style="margin:14px 4px 6px">Ajouter dans les scènes</h4><div id="snScenes"></div>
       <div class="field"><label>Texte « titre — artiste » (facultatif)</label><select id="spText"></select></div>
-      <p class="note" style="margin:12px 4px 2px">▶ Lecture : la source s’affiche. ⏸ Pause ou plus rien : elle se masque. L’appli Régie doit rester ouverte à l’écran.</p>
+      <button class="btn" id="snBuild">Créer / mettre à jour les sources</button>
+      <button class="btn sp" id="snPilot">Installer / mettre à jour le pilote</button>
+      <div class="splog" id="snLog" style="white-space:pre-line"></div>
     </div>
   </section>
 </main>
@@ -502,6 +530,7 @@ function onIrltk(x){
 }
 function onEvent(t,d){
   {const x=findIrltk(t,d);if(x){onIrltk(x);return}}
+  if(t==='CustomEvent'&&d.eventData&&d.eventData.regieExit==='pilote'){SN.pil=Object.assign({},d.eventData,{at:Date.now()});renderPilot();return}
   switch(t){
     case'CurrentProgramSceneChanged':
       if(d.sceneName!==S.program){if(!isSecours(S.program))S.prev=S.program;S.program=d.sceneName}
@@ -905,7 +934,7 @@ async function spLogin(){
   const r=new Uint8Array(48);crypto.getRandomValues(r);const ver=b64url(r);
   const ch=b64url(await sha256b(ver));
   // le vérificateur voyage aussi dans « state » pour que la connexion marche même si iOS change de contexte
-  const st=Math.random().toString(36).slice(2,10)+'.'+ver;
+  const st=(spLogin.mode==='pilot'?'p':'r')+Math.random().toString(36).slice(2,10)+'.'+ver;spLogin.mode='';
   try{localStorage.setItem('regie-sp-ver',ver)}catch(e){}
   const q=new URLSearchParams({client_id:SP_ID,response_type:'code',redirect_uri:SP_REDIRECT,code_challenge_method:'S256',code_challenge:ch,state:st,
     scope:'user-read-playback-state user-read-currently-playing'});
@@ -924,9 +953,19 @@ async function spHandleReturn(){
   if(err){SP.err='Connexion Spotify refusée ('+err+')';return}
   let ver='';try{ver=localStorage.getItem('regie-sp-ver')||''}catch(e){}
   if(!ver&&st&&st.includes('.'))ver=st.split('.').slice(1).join('.');
+  if(st&&st[0]==='p'){
+    // connexion dédiée au pilote : jeton séparé, jamais utilisé par la Régie
+    try{const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body:new URLSearchParams({grant_type:'authorization_code',code,redirect_uri:SP_REDIRECT,client_id:SP_ID,code_verifier:ver})});
+      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error_description||j.error||r.status);
+      SN.pendingRt=j.refresh_token;openSpotTab();snLog('Spotify autorisé pour le pilote. Installation dès qu’OBS est connecté…');
+      const wait=async()=>{for(let i=0;i<60&&!S.ok;i++)await sleep(500);await snInstallPilot()};wait();
+    }catch(e){SP.err='Échec de l’autorisation du pilote : '+e.message}
+    return;
+  }
   try{await spToken({grant_type:'authorization_code',code,redirect_uri:SP_REDIRECT,client_id:SP_ID,code_verifier:ver});
     SP.err='';setTimeout(()=>toast('Spotify connecté'),300);
-    S.view='spot';document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.v==='spot'));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-spot'));
+    openSpotTab();
   }catch(e){SP.err='Échec de la connexion Spotify : '+e.message}
 }
 async function spFetch(path){
@@ -952,20 +991,143 @@ async function spLoop(){
       else SP.err='Spotify : erreur '+r.status;
       if(r.ok||r.status===204)SP.err='';
     }catch(e){SP.err='Spotify : '+e.message;if(/invalid_grant|revoked/i.test(e.message)){spTok=null;spSave()}}
-    renderSpot();await spApply();
+    renderSpot();
   }
 }
-async function spApply(){
-  if(!cfg.sp.on||!S.ok||SP.playing===null||!cfg.sp.scene||!cfg.sp.source)return;
-  if(SP.playing!==SP.applied){
-    try{const id=(await req('GetSceneItemId',{sceneName:cfg.sp.scene,sourceName:cfg.sp.source})).sceneItemId;
-      await req('SetSceneItemEnabled',{sceneName:cfg.sp.scene,sceneItemId:id,sceneItemEnabled:SP.playing});
-      SP.applied=SP.playing;spLog((SP.playing?'▶ Source affichée':'⏸ Source masquée')+' : '+cfg.sp.source);
-    }catch(e){spLog('Erreur OBS : '+e.message)}
-  }
-  if(cfg.sp.text&&SP.playing&&SP.title){const txt=SP.title+(SP.artist?' — '+SP.artist:'');
-    if(txt!==SP.textApplied){try{await req('SetInputSettings',{inputName:cfg.sp.text,inputSettings:{text:txt},overlay:true});SP.textApplied=txt}catch(e){spLog('Erreur texte : '+e.message)}}}
+function openSpotTab(){S.view='spot';document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.v==='spot'));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-spot'))}
+
+/* ================= 33 sons : préparation OBS + pilote ================= */
+cfg.sons=Object.assign({pl:'https://open.spotify.com/playlist/4oxiAP0a5NawZu1ABSPakF',dir:'',ext:'.mp4',pos:'front',scenes:null,tracks:[],files:{}},cfg.sons||{});
+const SN={pendingRt:null,pil:null,dirTried:false};
+const SONS='SONS',PILOT='_Pilote Spotify EXIT';
+const nn2=i=>String(i+1).padStart(2,'0');
+function snLog(t){const el=$('snLog');el.textContent=(new Date().toLocaleTimeString('fr-FR')+' · '+t+'\n'+el.textContent).slice(0,1500)}
+function snFile(i){return cfg.sons.files[i]||(nn2(i)+cfg.sons.ext)}
+function snPath(i){const d=(cfg.sons.dir||'').replace(/[\\/]+$/,'');const sep=d.includes('\\')&&!d.includes('/')?'\\':'/';return d?d+sep+snFile(i):snFile(i)}
+function snRender(){
+  $('snPl').value=cfg.sons.pl||'';$('snDir').value=cfg.sons.dir||'';$('snExt').value=cfg.sons.ext||'.mp4';$('snPos').value=cfg.sons.pos||'front';
+  const T=cfg.sons.tracks||[];
+  $('snCount').textContent=T.length?T.length+' morceaux chargés':'Pas encore chargée';
+  $('snList').innerHTML=T.map((t,i)=>`<div class="snrow"><span class="nn">${nn2(i)}</span><div class="tt">${esc(t.name)}<small>${esc(t.artist||'')}</small></div><input data-snf="${i}" value="${esc(snFile(i))}" autocapitalize="off" autocorrect="off" spellcheck="false"></div>`).join('');
+  if(cfg.sons.scenes===null){if(S.ok&&!SN.scTried){SN.scTried=true;snDefaultScenes()}}
+  const chosen=cfg.sons.scenes||[];
+  $('snScenes').innerHTML=S.scenes.filter(n=>n!==SONS&&!n.startsWith('_')).map(n=>`<label class="check">${esc(n)}<input type="checkbox" switch data-sns="${esc(n)}"${chosen.includes(n)?' checked':''}></label>`).join('')||'<div class="note">Connecte-toi à OBS pour voir les scènes.</div>';
+  $('spText').innerHTML='<option value="">Aucun</option>'+S.inputs.filter(i=>i.kind.startsWith('text_')).map(i=>`<option${i.name===cfg.sp.text?' selected':''}>${esc(i.name)}</option>`).join('');
+  if(!cfg.sons.dir&&S.ok&&!SN.dirTried){SN.dirTried=true;snDetectDir()}
 }
+/* Par défaut : les scènes qui contiennent la source ingest (dont celle du « low bitrate ») */
+async function snDefaultScenes(){
+  const entry=entrySource(),out=[];
+  for(const n of S.scenes){if(n===SONS||n.startsWith('_'))continue;
+    try{const it=(await req('GetSceneItemList',{sceneName:n})).sceneItems||[];
+      if(it.some(x=>x.sourceName===entry||/ingest|srt|liveu/i.test(x.sourceName))&&!/offline/i.test(n))out.push(n)}catch(e){}}
+  cfg.sons.scenes=out;saveCfg();snRender();
+}
+async function snDetectDir(){
+  for(const i of S.inputs){if(!/ffmpeg_source|image_source|vlc_source/.test(i.kind))continue;
+    try{const s=(await req('GetInputSettings',{inputName:i.name})).inputSettings||{};const f=s.local_file||s.file||'';
+      const m=f.match(/^(.*[\\/]dependencies)[\\/]/i);if(m){cfg.sons.dir=m[1];saveCfg();$('snDir').value=m[1];snLog('Dossier détecté : '+m[1]);return}}catch(e){}}
+  snLog('Dossier « dependencies » non détecté : ajoute un fichier uploadé dans une source OBS une fois, ou tape le chemin.');
+}
+function plId(u){const m=String(u).match(/playlist[\/:]([A-Za-z0-9]{10,})/);return m?m[1]:String(u).trim()}
+async function snLoad(){
+  if(!spTok){toast('Connecte d’abord Spotify');return}
+  const id=plId(cfg.sons.pl);snLog('Chargement de la playlist…');
+  const out=[];let url='/playlists/'+id+'/items?limit=50',tries=0;
+  try{
+    while(url&&tries<10){tries++;let r=await spFetch(url);
+      if(r.status===404&&url.includes('/items')){url=url.replace('/items','/tracks');r=await spFetch(url)}
+      if(r.status===403)throw new Error('accès refusé : la playlist doit être à toi ou tu dois en être collaborateur');
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const j=await r.json();
+      for(const x of j.items||[]){const t=x.track||x.item||{};if(!t||!t.id)continue;out.push({id:t.id,name:t.name||'?',artist:(t.artists||[]).map(a=>a.name).join(', ')})}
+      url=j.next?j.next.replace('https://api.spotify.com/v1',''):null;
+    }
+    cfg.sons.tracks=out;saveCfg();snRender();snLog(out.length+' morceaux chargés depuis Spotify');
+  }catch(e){snLog('Erreur playlist : '+e.message)}
+}
+const snName=(i,t)=>('[SONS] '+nn2(i)+' · '+(t.name||'')).slice(0,72);
+async function snBuild(){
+  if(!S.ok){toast('OBS non connecté');return}
+  const T=cfg.sons.tracks;if(!T.length){toast('Charge d’abord la playlist');return}
+  if(!cfg.sons.dir){toast('Indique le dossier des fichiers');return}
+  $('snBuild').disabled=true;snLog('Création en cours…');
+  try{
+    const scenes=(await req('GetSceneList')).scenes.map(s=>s.sceneName);
+    if(!scenes.includes(SONS)){await req('CreateScene',{sceneName:SONS});snLog('Scène SONS créée')}
+    let vs={baseWidth:1920,baseHeight:1080};try{vs=await req('GetVideoSettings')}catch(e){}
+    const ex=(await req('GetSceneItemList',{sceneName:SONS})).sceneItems||[];
+    let made=0,upd=0,errs=0;
+    for(let i=0;i<T.length;i++){
+      const st={is_local_file:true,local_file:snPath(i),looping:false,restart_on_activate:false,close_when_inactive:false,clear_on_media_end:true,hw_decode:true};
+      const old=ex.find(it=>it.sourceName.startsWith('[SONS] '+nn2(i)+' ')||it.sourceName==='[SONS] '+nn2(i));
+      try{
+        if(old){await req('SetInputSettings',{inputName:old.sourceName,inputSettings:st,overlay:true});upd++}
+        else{const r=await req('CreateInput',{sceneName:SONS,inputName:snName(i,T[i]),inputKind:'ffmpeg_source',inputSettings:st,sceneItemEnabled:false});
+          try{await req('SetSceneItemTransform',{sceneName:SONS,sceneItemId:r.sceneItemId,sceneItemTransform:{positionX:0,positionY:0,alignment:5,boundsType:'OBS_BOUNDS_SCALE_INNER',boundsAlignment:0,boundsWidth:vs.baseWidth,boundsHeight:vs.baseHeight}})}catch(e){}
+          made++}
+      }catch(e){errs++;snLog('Erreur '+nn2(i)+' : '+e.message)}
+    }
+    snLog(made+' sources créées, '+upd+' mises à jour'+(errs?', '+errs+' erreurs':''));
+    // insérer SONS dans les scènes choisies, devant ou derrière l'ingest
+    const entry=entrySource();
+    for(const sc of (cfg.sons.scenes||[])){
+      if(!scenes.includes(sc))continue;
+      try{
+      const items=(await req('GetSceneItemList',{sceneName:sc})).sceneItems||[];
+      if(items.some(it=>it.sourceName===SONS))continue;
+      const r=await req('CreateSceneItem',{sceneName:sc,sourceName:SONS,sceneItemEnabled:true});
+      const ing=items.find(it=>it.sourceName===entry)||items.find(it=>/ingest|srt|liveu/i.test(it.sourceName));
+      if(ing){const idx=cfg.sons.pos==='back'?ing.sceneItemIndex:ing.sceneItemIndex+1;try{await req('SetSceneItemIndex',{sceneName:sc,sceneItemId:r.sceneItemId,sceneItemIndex:idx})}catch(e){}}
+      snLog('SONS ajoutée dans « '+sc+' »'+(ing?(cfg.sons.pos==='back'?' derrière ':' devant ')+ing.sourceName:''));
+      }catch(e){snLog('Scène « '+sc+' » : '+e.message)}
+    }
+    snLog('Terminé ✓');toast('Sources prêtes');
+  }catch(e){snLog('Erreur : '+e.message)}
+  $('snBuild').disabled=false;
+}
+function wsUrl(){const h=cfg.host.trim();return /^wss?:\/\//i.test(h)?h:'ws://'+h+':'+(cfg.port||4455)}
+async function snInstallPilot(){
+  const rt=SN.pendingRt;if(!rt){spLogin.mode='pilot';spLogin();return}
+  if(!S.ok){snLog('OBS non connecté : installation impossible');return}
+  const T=cfg.sons.tracks;if(!T.length){snLog('Charge d’abord la playlist');return}
+  const base=location.origin+location.pathname.replace(/index\.html$/,'').replace(/[^/]*$/,'');
+  const q=new URLSearchParams({cid:SP_ID,rt,ws:wsUrl(),pw:cfg.pass,scene:SONS,m:T.map((t,i)=>t.id+':'+(i+1)).join(',')});
+  if(cfg.sp.text)q.set('txt',cfg.sp.text);
+  const url=base+'bridge.html#'+q.toString();
+  const st={url,width:320,height:60,fps:30,shutdown:false,restart_when_active:false,reroute_audio:false,css:'body{background:transparent!important}'};
+  try{
+    const scenes=(await req('GetSceneList')).scenes.map(s=>s.sceneName);
+    if(!scenes.includes(SONS)){await req('CreateScene',{sceneName:SONS})}
+    let exists=false;try{await req('GetInputSettings',{inputName:PILOT});exists=true}catch(e){}
+    if(exists)await req('SetInputSettings',{inputName:PILOT,inputSettings:st,overlay:true});
+    else await req('CreateInput',{sceneName:SONS,inputName:PILOT,inputKind:'browser_source',inputSettings:st,sceneItemEnabled:true});
+    SN.pendingRt=null;snLog('Pilote '+(exists?'mis à jour':'installé')+' dans OBS ✓ ('+T.length+' morceaux)');toast('Pilote installé');
+  }catch(e){snLog('Erreur pilote : '+e.message)}
+}
+function renderPilot(){
+  const p=SN.pil,st=$('pilSt');if(!st)return;
+  const age=p?Date.now()-p.at:1e9;
+  if(!p){st.textContent='Pas de signal';st.style.background='var(--card3)';st.style.color='#fff';$('pilSub').textContent=S.ok?'Aucun signal du pilote. Installe-le ou vérifie qu’il est dans OBS.':'';return}
+  if(age>15000){st.textContent='Silencieux';st.style.background='var(--orange)';st.style.color='var(--ink)';$('pilSub').textContent='Dernier signal il y a '+Math.round(age/1000)+' s';return}
+  if(p.err){st.textContent='Erreur';st.style.background='var(--red)';st.style.color='#fff';$('pilTitle').textContent=p.err;$('pilSub').textContent='';return}
+  st.textContent='Actif';st.style.background='var(--g)';st.style.color='var(--ink)';
+  $('pilTitle').textContent=p.title?((p.playing?'▶ ':'⏸ ')+p.title):'Rien ne joue';
+  $('pilSub').textContent=p.nn?('Vidéo '+p.nn+(p.paused?' en pause':' à l’antenne')):(p.title&&!p.mapped?'Morceau hors playlist : aucune vidéo':(p.tracks+' morceaux surveillés'));
+}
+$('snPl').onchange=e=>{cfg.sons.pl=e.target.value.trim();saveCfg()};
+$('snDir').onchange=e=>{cfg.sons.dir=e.target.value.trim();saveCfg()};
+$('snExt').onchange=e=>{cfg.sons.ext=e.target.value;saveCfg();snRender()};
+$('snPos').onchange=e=>{cfg.sons.pos=e.target.value;saveCfg()};
+$('snList').addEventListener('change',e=>{const f=e.target.closest('[data-snf]');if(!f)return;const i=+f.dataset.snf,v=f.value.trim();
+  if(!v||v===nn2(i)+cfg.sons.ext)delete cfg.sons.files[i];else cfg.sons.files[i]=v;saveCfg()});
+$('snScenes').addEventListener('change',e=>{const c=e.target.closest('[data-sns]');if(!c)return;const n=c.dataset.sns;
+  cfg.sons.scenes=(cfg.sons.scenes||[]).filter(x=>x!==n);if(c.checked)cfg.sons.scenes.push(n);saveCfg()});
+$('snLoad').onclick=()=>{haptic();snLoad()};
+$('snBuild').onclick=()=>{haptic();snBuild()};
+$('snPilot').onclick=()=>{haptic();if(!cfg.sons.tracks.length){toast('Charge d’abord la playlist');return}snLog('Autorisation Spotify pour le pilote…');spLogin.mode='pilot';spLogin()};
+setInterval(renderPilot,1000);
+
 function spLog(t){$('spLog').textContent=new Date().toLocaleTimeString('fr-FR')+' · '+t}
 function renderSpot(){
   const st=$('spSt');
@@ -979,16 +1141,10 @@ function renderSpot(){
   if(SP.art){if($('spArt').src!==SP.art)$('spArt').src=SP.art}else $('spArt').removeAttribute('src');
 }
 async function fillSpot(){
-  const sc=$('spScene');sc.innerHTML='<option value="">Choisir…</option>'+S.scenes.map(n=>`<option${n===cfg.sp.scene?' selected':''}>${esc(n)}</option>`).join('');
-  let items=[];if(cfg.sp.scene&&S.ok){try{items=await itemsOf(cfg.sp.scene,false)}catch(e){}}
-  $('spSource').innerHTML='<option value="">Choisir…</option>'+items.map(it=>`<option${it.sourceName===cfg.sp.source?' selected':''}>${esc(it.sourceName)}</option>`).join('');
+  snRender();
   $('spText').innerHTML='<option value="">Aucun</option>'+S.inputs.filter(i=>i.kind.startsWith('text_')).map(i=>`<option${i.name===cfg.sp.text?' selected':''}>${esc(i.name)}</option>`).join('');
-  $('spOn').checked=!!cfg.sp.on;
-}
+  }
 $('spConnect').onclick=()=>{haptic();if(spTok){spTok=null;spSave();SP.playing=null;SP.applied=null;renderSpot();toast('Spotify déconnecté')}else spLogin()};
-$('spOn').onchange=e=>{haptic();cfg.sp.on=e.target.checked;SP.applied=null;saveCfg();toast(cfg.sp.on?'Lien Spotify → OBS activé':'Lien Spotify → OBS coupé')};
-$('spScene').onchange=e=>{cfg.sp.scene=e.target.value;cfg.sp.source='';SP.applied=null;saveCfg();fillSpot()};
-$('spSource').onchange=e=>{cfg.sp.source=e.target.value;SP.applied=null;saveCfg()};
 $('spText').onchange=e=>{cfg.sp.text=e.target.value;SP.textApplied='';saveCfg()};
 
 /* ================= Réglages ================= */
