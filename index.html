@@ -816,7 +816,7 @@ function renderLib(k){
   const g=$('g-'+k);if(!g)return;
   const all=S.tiles.map((t,i)=>[t,i]).filter(([t])=>t.lib===k).sort((a,b)=>a[0].label.localeCompare(b[0].label,'fr',{numeric:true}));
   const q='',shown=all;
-  $('n-'+k).textContent=all.length?(all.length+(k==='lieux'?' lieu':' titre')+(all.length>1?'s':'')+(q?' · '+shown.length+' trouvé'+(shown.length>1?'s':''):'')):(S.ok?'Aucun':'–');
+  $('n-'+k).textContent=all.length?(all.length+(k==='lieux'?(all.length>1?' lieux':' lieu'):(all.length>1?' titres':' titre'))+(q?' · '+shown.length+' trouvé'+(shown.length>1?'s':''):'')):(S.ok?'Aucun':'–');
   const off=all.length&&all.every(([t])=>t.offAir);
   const w=$('w-'+k);w.textContent=off?'⚠ La scène « '+(k==='lieux'?'LIEUX':'MUSIQUES')+' » n’est pas dans la scène à l’antenne ('+S.program+') : ce que tu lances ne passera pas sur le stream.':'';w.classList.toggle('on',!!off);
   g.innerHTML=shown.length?shown.map(([t,i])=>tileHTML(i,LIBCOL[k])).join(''):'<div class="empty" style="grid-column:1/-1">'+(all.length?'Rien ne correspond à « '+esc(S_Q[k])+' »':(S.ok?'Aucun élément pour l’instant.':'En attente d’OBS…'))+'</div>';
