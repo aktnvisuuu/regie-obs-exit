@@ -278,7 +278,7 @@ nav button.on{background:#fff;color:var(--ink)}
     <div class="spc">
       <div class="rh"><span class="lbl">2 · Fichiers sur le serveur</span></div>
       <div class="field"><label>Dossier des fichiers (dependencies)</label><input id="snDir" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="/…/dependencies"></div>
-      <div class="field"><label>Extension des fichiers</label><select id="snExt"><option>.mp4</option><option>.mov</option><option>.webm</option><option>.mkv</option></select></div>
+      <div class="field"><label>Extension des fichiers</label><select id="snExt"><option>.mp3</option><option>.wav</option><option>.m4a</option><option>.flac</option><option>.mp4</option><option>.mov</option><option>.webm</option><option>.mkv</option></select></div>
       <p class="note" style="margin:10px 4px 0">Nomme tes fichiers 01, 02, 03… dans l’ordre de la playlist (ex. 01.mp4). Tu peux corriger un nom dans la liste.</p>
       <div id="snList"></div>
     </div>
@@ -759,13 +759,13 @@ function renderRegie(){
     cats.forEach((arr,cat)=>{const col=PAL[ci++%PAL.length];h+=`<div class="cat" style="--c:${col}"><i></i>${esc(cat)}</div><div class="grid">`+arr.map(i=>tileHTML(i,col)).join('')+'</div>'});
     if(!cats.size)h+='<div class="empty">Aucune source dans cette scène.</div>';
   }
-  h+='<p class="note">Toucher une source l’affiche ou la masque sans quitter la scène. ••• ouvre ses options : effets, durée d’affichage, texte. Range tes sources avec « [Catégorie] Nom ». Ce qui commence par « _ » est caché.</p>';
+  h+='<p class="note">Toucher une source l’affiche ou la masque sans quitter la scène (une musique ou une vidéo démarre, retoucher l’arrête). ••• ouvre ses options : effets, durée d’affichage, texte. Range tes sources avec « [Catégorie] Nom ». Ce qui commence par « _ » est caché.</p>';
   v.innerHTML=h;
 }
 function tileHTML(i,col){
   const t=S.tiles[i],media=MEDIA.includes(t.kind),play=!!S.playing[t.src],tm=S.timers[t.src],d=cfg.dur[t.src]||0;
   let on,k,b;
-  if(media){on=play||t.vis;b=play?'●':'▶';k=play?'En lecture':t.vis?'Visible · toucher = relancer':'Toucher pour lancer'}
+  if(media){on=play||t.vis;b=play?'●':'▶';k=play?'En lecture · toucher = arrêter':t.vis?'Actif · toucher = arrêter':'Toucher pour lancer'}
   else if(tm){on=true;b='✓';k='À l’écran · '+d+' s'}
   else{on=t.vis;b=t.vis?'✓':'+';k=t.vis?'À l’écran':(d?'Masqué · '+d+' s':'Masqué')}
   const bar=tm?`<div class="bar" style="animation:shrink ${tm.total}ms linear -${Date.now()-tm.start}ms forwards"></div>`:'';
@@ -786,9 +786,11 @@ async function tapTile(i){
   const t=S.tiles[i];if(!t)return;haptic();
   try{
     if(MEDIA.includes(t.kind)){
-      if(!t.vis)await setVis(t,true);
-      await req('TriggerMediaInputAction',{inputName:t.src,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART'});
-      S.launched[t.src]={scene:t.c,id:t.id};toast('Lancé : '+t.label);
+      if(t.vis){delete S.launched[t.src];try{await req('TriggerMediaInputAction',{inputName:t.src,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP'})}catch(e){}
+        await setVis(t,false);toast('Arrêté : '+t.label)}
+      else{await setVis(t,true);
+        await req('TriggerMediaInputAction',{inputName:t.src,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART'});
+        S.launched[t.src]={scene:t.c,id:t.id};toast('Lancé : '+t.label)}
     }else if(t.vis||S.timers[t.src]){clearTimer(t.src);await setVis(t,false)}
     else{await setVis(t,true);const d=cfg.dur[t.src];if(d)startTimer(t,d)}
   }catch(err){toast('Erreur : '+err.message)}
@@ -1059,7 +1061,7 @@ async function snBuild(){
     const ex=(await req('GetSceneItemList',{sceneName:SONS})).sceneItems||[];
     let made=0,upd=0,errs=0;
     for(let i=0;i<T.length;i++){
-      const st={is_local_file:true,local_file:snPath(i),looping:false,restart_on_activate:false,close_when_inactive:false,clear_on_media_end:true,hw_decode:true};
+      const st={is_local_file:true,local_file:snPath(i),looping:false,restart_on_activate:true,close_when_inactive:true,clear_on_media_end:true,hw_decode:true};
       const old=ex.find(it=>it.sourceName.startsWith('[SONS] '+nn2(i)+' ')||it.sourceName==='[SONS] '+nn2(i));
       try{
         if(old){await req('SetInputSettings',{inputName:old.sourceName,inputSettings:st,overlay:true});upd++}
