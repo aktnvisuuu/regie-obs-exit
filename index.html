@@ -818,7 +818,7 @@ function renderLib(k){
   const q='',shown=all;
   $('n-'+k).textContent=all.length?(all.length+(k==='lieux'?(all.length>1?' lieux':' lieu'):(all.length>1?' titres':' titre'))+(q?' · '+shown.length+' trouvé'+(shown.length>1?'s':''):'')):(S.ok?'Aucun':'–');
   const off=all.length&&all.every(([t])=>t.offAir);
-  const w=$('w-'+k);w.textContent=off?'⚠ La scène « '+(k==='lieux'?'LIEUX':'MUSIQUES')+' » n’est pas dans la scène à l’antenne ('+S.program+') : ce que tu lances ne passera pas sur le stream.':'';w.classList.toggle('on',!!off);
+  const w=$('w-'+k);w.textContent=off?'⚠ « '+all[0][0].c+' » n’est pas à l’antenne (en ce moment : '+S.program+'). Ce que tu lances ici ne passera sur le stream qu’une fois sur '+all[0][0].c+'.':'';w.classList.toggle('on',!!off);
   g.innerHTML=shown.length?shown.map(([t,i])=>tileHTML(i,LIBCOL[k])).join(''):'<div class="empty" style="grid-column:1/-1">'+(all.length?'Rien ne correspond à « '+esc(S_Q[k])+' »':(S.ok?'Aucun élément pour l’instant.':'En attente d’OBS…'))+'</div>';
 }
 document.querySelectorAll('[data-stopall]').forEach(b=>b.addEventListener('click',async()=>{
