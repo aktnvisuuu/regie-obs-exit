@@ -510,7 +510,7 @@ async function loadAssets(){
   for(const it of main){
     if(isSceneItem(it)&&!it.sourceName.startsWith('_')){try{cs.push({name:it.sourceName,items:await itemsOf(it.sourceName,!!it.isGroup)})}catch(e){}}
   }
-  for(const L of LIBS){const sc=S.scenes.find(n=>n.toUpperCase()===L);if(sc&&!cs.some(c=>c.name===sc)){try{cs.push({name:sc,items:await itemsOf(sc,false),offAir:true})}catch(e){}}}
+  for(const L of [...LIBS,'INGEST']){const sc=S.scenes.find(n=>n.toUpperCase()===L);if(sc&&!cs.some(c=>c.name===sc)){try{cs.push({name:sc,items:await itemsOf(sc,false),offAir:true})}catch(e){}}}
   let fx=[];try{fx=(await req('GetSourceFilterList',{sourceName:prog})).filters||[]}catch(e){}
   if(prog!==S.program)return;
   S.containers=cs;S.sceneFx=fx.filter(f=>!f.filterName.startsWith('_'));renderRegie();
