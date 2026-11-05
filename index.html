@@ -803,7 +803,8 @@ function renderRegie(){
 function tileHTML(i,col){
   const t=S.tiles[i],media=MEDIA.includes(t.kind),play=!!S.playing[t.src],tm=S.timers[t.src],d=cfg.dur[t.src]||0;
   let on,k,b;
-  if(media){on=play||t.vis;b=play?'●':'▶';k=play?'En lecture · toucher = arrêter':t.vis?'Actif · toucher = arrêter':'Toucher pour lancer'}
+  if(media&&FADING.has(t.src)){on=true;b='↘';k='Fondu de sortie…'}
+  else if(media){on=play||t.vis;b=play?'●':'▶';k=play?'En lecture · toucher = arrêter':t.vis?'Actif · toucher = arrêter':'Toucher pour lancer'}
   else if(tm){on=true;b='✓';k='À l’écran · '+d+' s'}
   else{on=t.vis;b=t.vis?'✓':'+';k=t.vis?'À l’écran':(d?'Masqué · '+d+' s':'Masqué')}
   const bar=tm?`<div class="bar" style="animation:shrink ${tm.total}ms linear -${Date.now()-tm.start}ms forwards"></div>`:'';
@@ -823,11 +824,45 @@ function renderLib(k){
 }
 document.querySelectorAll('[data-stopall]').forEach(b=>b.addEventListener('click',async()=>{
   haptic();const k=b.dataset.stopall;let n=0;
-  for(const t of S.tiles.filter(t=>t.lib===k&&t.vis)){n++;delete S.launched[t.src];try{await req('TriggerMediaInputAction',{inputName:t.src,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP'})}catch(e){}try{await setVis(t,false)}catch(e){}}
+  const list=S.tiles.filter(t=>t.lib===k&&t.vis);n=list.length;await Promise.all(list.map(t=>fadeStop(t)));
   toast(n?'Tout est arrêté':'Rien en cours')}));
 async function goScene(n){if(!n||n===S.program)return;haptic();try{await req('SetCurrentProgramScene',{sceneName:n})}catch(e){toast('Erreur : '+e.message)}}
 
 const setVis=(t,v)=>req('SetSceneItemEnabled',{sceneName:t.c,sceneItemId:t.id,sceneItemEnabled:v});
+/* Fondu de sortie : son + image baissent sur ~1 s, puis arrêt. Au lancement, tout est remis à 100 %. */
+const FADE='_Fondu EXIT',FADE_MS=1000,FADE_STEPS=12;
+cfg.fadeOrig=cfg.fadeOrig||{};const FADING=new Set();
+async function ensureFade(src){
+  try{await req('GetSourceFilter',{sourceName:src,filterName:FADE});return true}catch(e){}
+  try{await req('CreateSourceFilter',{sourceName:src,filterName:FADE,filterKind:'color_filter_v2',filterSettings:{opacity:1}});return true}catch(e){return false}
+}
+async function prepLaunch(t){
+  // remet le volume et l'opacité d'origine, même si un fondu précédent a été interrompu
+  const o=cfg.fadeOrig[t.src];
+  if(o!=null){try{await req('SetInputVolume',{inputName:t.src,inputVolumeMul:o})}catch(e){}}
+  try{await req('SetSourceFilterSettings',{sourceName:t.src,filterName:FADE,filterSettings:{opacity:1},overlay:true})}catch(e){}
+}
+async function fadeStop(t){
+  if(FADING.has(t.src))return;FADING.add(t.src);renderRegie();
+  try{
+    let orig=1;try{orig=(await req('GetInputVolume',{inputName:t.src})).inputVolumeMul}catch(e){}
+    if(cfg.fadeOrig[t.src]==null||orig>0.001){cfg.fadeOrig[t.src]=orig;saveCfg()}
+    orig=cfg.fadeOrig[t.src];
+    const hasF=await ensureFade(t.src);
+    for(let i=1;i<=FADE_STEPS;i++){
+      const p=i/FADE_STEPS,g=Math.pow(1-p,2);
+      const ops=[req('SetInputVolume',{inputName:t.src,inputVolumeMul:orig*g}).catch(()=>{})];
+      if(hasF)ops.push(req('SetSourceFilterSettings',{sourceName:t.src,filterName:FADE,filterSettings:{opacity:1-p},overlay:true}).catch(()=>{}));
+      await Promise.all(ops);await sleep(FADE_MS/FADE_STEPS);
+    }
+    delete S.launched[t.src];
+    try{await req('TriggerMediaInputAction',{inputName:t.src,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP'})}catch(e){}
+    try{await setVis(t,false)}catch(e){}
+    // une fois masqué, on remet tout à 100 % pour le prochain lancement
+    try{await req('SetInputVolume',{inputName:t.src,inputVolumeMul:orig})}catch(e){}
+    if(hasF)try{await req('SetSourceFilterSettings',{sourceName:t.src,filterName:FADE,filterSettings:{opacity:1},overlay:true})}catch(e){}
+  }finally{FADING.delete(t.src);renderRegie()}
+}
 const curTile=t=>S.tiles.find(x=>x.c===t.c&&x.id===t.id)||t;
 function clearTimer(src){const x=S.timers[src];if(x){clearTimeout(x.h);delete S.timers[src]}}
 function startTimer(t,d){
@@ -838,7 +873,15 @@ function startTimer(t,d){
 async function tapTile(i){
   const t=S.tiles[i];if(!t)return;haptic();
   try{
-    if(MEDIA.includes(t.kind)){
+    if(MEDIA.includes(t.kind)&&t.lib){
+      if(FADING.has(t.src))return;
+      if(t.vis){fadeStop(t);toast('Fondu de sortie : '+t.label)}
+      else{
+        S.tiles.filter(o=>o.lib===t.lib&&o.vis&&o!==t).forEach(o=>fadeStop(o));
+        await prepLaunch(t);await setVis(t,true);
+        await req('TriggerMediaInputAction',{inputName:t.src,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_RESTART'});
+        S.launched[t.src]={scene:t.c,id:t.id};toast('Lancé : '+t.label)}
+    }else if(MEDIA.includes(t.kind)){
       if(t.vis){delete S.launched[t.src];try{await req('TriggerMediaInputAction',{inputName:t.src,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP'})}catch(e){}
         await setVis(t,false);toast('Arrêté : '+t.label)}
       else{
@@ -909,7 +952,7 @@ async function applyText(t,val,show){
 async function loadDetailFx(){
   const t=S.sheet&&S.sheet.t;if(!t)return;
   let f=[];try{f=(await req('GetSourceFilterList',{sourceName:t.src})).filters||[]}catch(e){}
-  if(!S.sheet||S.sheet.t!==t)return;S.sheet.fx=f;
+  if(!S.sheet||S.sheet.t!==t)return;f=f.filter(x=>x.filterName!==FADE);S.sheet.fx=f;
   $('dFx').innerHTML=f.length?f.map((x,j)=>`<label class="check">${esc(x.filterName)}<input type="checkbox" switch data-dfx="${j}"${x.filterEnabled?' checked':''}></label>`).join('')
     :'<div class="note" style="margin:4px 2px">Aucun filtre sur cette source. Ajoute-les dans OBS (clic droit → Filtres) et désactive-les : tu pourras les allumer d’ici.</div>';
 }
