@@ -20,7 +20,7 @@ html,body{margin:0;background:transparent;overflow:hidden}
    Tout est passé dans le # de l'adresse (jamais envoyé à GitHub).
    ===================================================================== */
 const P=new URLSearchParams(location.hash.slice(1));
-const CID=P.get('cid')||'',WS=P.get('ws')||'',PW=(P.get('pw')||'').trim(),SCENE=P.get('scene')||'SONS',TXT=P.get('txt')||'';
+const CID=P.get('cid')||'',WS=P.get('ws')||'',PW=(P.get('pw')||'').trim(),SCENE=P.get('scene')||'Ingest',TXT=P.get('txt')||'',PRE=P.get('pre')||'[Musiques] ';
 const DEBUG=P.has('debug');
 const MAP={};(P.get('m')||'').split(',').filter(Boolean).forEach(x=>{const i=x.lastIndexOf(':');if(i>0)MAP[x.slice(0,i)]=x.slice(i+1).padStart(2,'0')});
 const RT0=P.get('rt')||'';
@@ -61,7 +61,8 @@ function connect(){
       ws.send(JSON.stringify({op:1,d:id}))}
     else if(m.op===2){O.ok=true;O.everOk=true;O.retry=0;log('OBS connecté ('+url+')');loadItems();status(true)}
     else if(m.op===7){const p=O.pend.get(d.requestId);if(p){O.pend.delete(d.requestId);d.requestStatus.result?p.res(d.responseData||{}):p.rej(new Error(d.requestStatus.comment||('code '+d.requestStatus.code)))}}
-    else if(m.op===5){const t=d.eventType;if(/^SceneItem(Created|Removed|ListReindexed)$|^InputNameChanged$/.test(t))loadItems()}
+    else if(m.op===5){const t=d.eventType,e=d.eventData||{};if(/^SceneItem(Created|Removed|ListReindexed)$|^InputNameChanged$/.test(t))loadItems();
+      if(t==='SceneItemEnableStateChanged'&&e.sceneName===SCENE){const it=ITEMS.find(i=>i.sceneItemId===e.sceneItemId);if(it)it.sceneItemEnabled=e.sceneItemEnabled}}
   };
   ws.onclose=ev=>{if(ws!==O.ws)return;O.ok=false;O.pend.forEach(p=>p.rej(new Error('fermé')));O.pend.clear();
     if(ev.code===4009)log('Mot de passe OBS refusé');
@@ -74,7 +75,7 @@ function req(type,data){return new Promise((res,rej)=>{if(!O.ok)return rej(new E
 /* ---------- Sources de la scène SONS ---------- */
 let ITEMS=[];
 async function loadItems(){try{ITEMS=(await req('GetSceneItemList',{sceneName:SCENE})).sceneItems||[]}catch(e){log('Scène '+SCENE+' introuvable')}}
-const itemOf=nn=>ITEMS.find(i=>i.sourceName.startsWith('[SONS] '+nn+' ')||i.sourceName==='[SONS] '+nn);
+const itemOf=nn=>ITEMS.find(i=>i.sourceName.startsWith(PRE+nn+' ')||i.sourceName===PRE+nn);
 
 /* ---------- Spotify ---------- */
 async function refresh(){
@@ -97,23 +98,44 @@ async function player(){
 }
 
 /* ---------- Pilotage ---------- */
-const ST={shown:null,paused:false,track:'',title:'',artist:'',playing:false,lastDrift:0,err:'',lastText:''};
-async function setVis(nn,v){const it=itemOf(nn);if(!it)throw new Error('Source [SONS] '+nn+' absente');await req('SetSceneItemEnabled',{sceneName:SCENE,sceneItemId:it.sceneItemId,sceneItemEnabled:v});return it}
+const ST={shown:null,paused:false,track:'',title:'',artist:'',playing:false,lastDrift:0,err:'',lastText:'',showAt:0,override:''};
+const FADE='_Fondu EXIT',FADE_MS=900,FADE_STEPS=10;
+const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
 async function media(it,action){await req('TriggerMediaInputAction',{inputName:it.sourceName,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_'+action})}
 async function seek(it,ms){if(ms>800)await req('SetMediaInputCursor',{inputName:it.sourceName,mediaCursor:Math.round(ms)})}
-async function show(nn,prog){
-  const it=await setVis(nn,true);await media(it,'RESTART');await sleep(150);await seek(it,prog+150);
-  ST.shown=nn;ST.paused=false;ST.lastDrift=Date.now();log('▶ '+nn+' '+ST.title);
+async function setEn(it,v){await req('SetSceneItemEnabled',{sceneName:SCENE,sceneItemId:it.sceneItemId,sceneItemEnabled:v});it.sceneItemEnabled=v}
+async function hasFade(src){try{await req('GetSourceFilter',{sourceName:src,filterName:FADE});return true}catch(e){}
+  try{await req('CreateSourceFilter',{sourceName:src,filterName:FADE,filterKind:'color_filter_v2',filterSettings:{opacity:1}});return true}catch(e){return false}}
+async function prep(it){
+  const o=ls('exit-vol:'+it.sourceName);if(o!=null){try{await req('SetInputVolume',{inputName:it.sourceName,inputVolumeMul:+o})}catch(e){}}
+  try{await req('SetSourceFilterSettings',{sourceName:it.sourceName,filterName:FADE,filterSettings:{opacity:1},overlay:true})}catch(e){}
 }
-async function hide(nn){const it=itemOf(nn);if(!it)return;try{await media(it,'STOP')}catch(e){}await req('SetSceneItemEnabled',{sceneName:SCENE,sceneItemId:it.sceneItemId,sceneItemEnabled:false})}
-async function pauseHide(nn){const it=itemOf(nn);if(!it)return;try{await media(it,'PAUSE')}catch(e){}await req('SetSceneItemEnabled',{sceneName:SCENE,sceneItemId:it.sceneItemId,sceneItemEnabled:false});ST.paused=true;log('⏸ '+nn)}
-async function resume(nn,prog){const it=await setVis(nn,true);await media(it,'PLAY');await seek(it,prog);ST.paused=false;ST.lastDrift=Date.now();log('▶ reprise '+nn)}
+async function fadeOut(it){
+  let orig=1;try{orig=(await req('GetInputVolume',{inputName:it.sourceName})).inputVolumeMul}catch(e){}
+  const saved=ls('exit-vol:'+it.sourceName);if(saved==null||orig>0.001)ls('exit-vol:'+it.sourceName,String(orig));orig=+(ls('exit-vol:'+it.sourceName)||1);
+  const f=await hasFade(it.sourceName);
+  for(let i=1;i<=FADE_STEPS;i++){const p=i/FADE_STEPS;
+    await Promise.all([req('SetInputVolume',{inputName:it.sourceName,inputVolumeMul:orig*Math.pow(1-p,2)}).catch(()=>{}),
+      f?req('SetSourceFilterSettings',{sourceName:it.sourceName,filterName:FADE,filterSettings:{opacity:1-p},overlay:true}).catch(()=>{}):0]);
+    await sleep(FADE_MS/FADE_STEPS)}
+  try{await media(it,'STOP')}catch(e){}
+  try{await setEn(it,false)}catch(e){}
+  try{await req('SetInputVolume',{inputName:it.sourceName,inputVolumeMul:orig})}catch(e){}
+  if(f)try{await req('SetSourceFilterSettings',{sourceName:it.sourceName,filterName:FADE,filterSettings:{opacity:1},overlay:true})}catch(e){}
+}
+async function show(nn,prog){
+  const it=itemOf(nn);if(!it)throw new Error('Source '+PRE+nn+' absente de '+SCENE);
+  // une autre musique encore affichée (lancée à la main) : on la fait sortir en fondu
+  ITEMS.filter(o=>o!==it&&o.sceneItemEnabled&&o.sourceName.startsWith(PRE)).forEach(o=>fadeOut(o));
+  await prep(it);await setEn(it,true);await media(it,'RESTART');await sleep(150);await seek(it,prog+150);
+  ST.shown=nn;ST.paused=false;ST.lastDrift=Date.now();ST.showAt=Date.now();log('▶ '+nn+' '+ST.title);
+}
+async function resume(nn,prog){const it=itemOf(nn);if(!it)return;await prep(it);await setEn(it,true);await media(it,'PLAY');await seek(it,prog);ST.paused=false;ST.lastDrift=Date.now();ST.showAt=Date.now();log('▶ reprise '+nn)}
 async function drift(nn,prog){
   if(Date.now()-ST.lastDrift<5000)return;ST.lastDrift=Date.now();
-  const it=itemOf(nn);if(!it)return;
+  const it=itemOf(nn);if(!it||!it.sceneItemEnabled)return;
   try{const s=await req('GetMediaInputStatus',{inputName:it.sourceName});
-    if(typeof s.mediaCursor==='number'&&Math.abs(s.mediaCursor-prog)>1200){await seek(it,prog);log('↻ recalage '+nn+' ('+Math.round(s.mediaCursor-prog)+' ms)')}
-    if(s.mediaState&&/STOPPED|ENDED/.test(s.mediaState)&&prog<(s.mediaDuration||1e12)-2000){await media(it,'PLAY');await seek(it,prog)}
+    if(typeof s.mediaCursor==='number'&&Math.abs(s.mediaCursor-prog)>1200&&prog<(s.mediaDuration||1e12)-1500){await seek(it,prog);log('↻ recalage '+nn)}
   }catch(e){}
 }
 async function setText(){
@@ -124,16 +146,22 @@ async function step(){
   const p=await player();if(!p)return;
   const it=p.item||{},tid=it.id||'',nn=MAP[tid]||null,playing=!!p.is_playing;
   const prog=(p.progress_ms||0)+(p._lat||0);
+  if(tid!==ST.track)ST.override='';
   ST.playing=playing;ST.track=tid;ST.title=it.name||'';ST.artist=(it.artists||[]).map(a=>a.name).join(', ');
   if(!O.ok)return;
+  if(!playing)ST.override='';
   if(playing&&nn){
-    if(ST.shown!==nn){if(ST.shown)await hide(ST.shown);await show(nn,prog)}
+    if(ST.override===tid)return;                                  // arrêtée à la main : on n'insiste pas
+    const cur=itemOf(nn);
+    if(ST.shown===nn&&!ST.paused&&cur&&!cur.sceneItemEnabled&&Date.now()-ST.showAt>2500){ST.override=tid;ST.shown=null;log('Arrêt manuel respecté');return}
+    if(ST.shown!==nn){const old=ST.shown&&itemOf(ST.shown);if(old&&old.sceneItemEnabled)fadeOut(old);await show(nn,prog)}
     else if(ST.paused)await resume(nn,prog);
     else await drift(nn,prog);
     await setText();
   }else if(ST.shown){
-    if(!nn){await hide(ST.shown);ST.shown=null;ST.paused=false;log('Morceau hors playlist : vidéo masquée')}
-    else if(!ST.paused)await pauseHide(ST.shown);
+    const cur=itemOf(ST.shown);
+    if(!nn){if(cur&&cur.sceneItemEnabled)await fadeOut(cur);ST.shown=null;ST.paused=false;log('Morceau hors liste : musique sortie')}
+    else if(!ST.paused){if(cur&&cur.sceneItemEnabled)await fadeOut(cur);ST.paused=true;log('⏸ '+ST.shown)}
   }
 }
 let lastSig='',lastSent=0;

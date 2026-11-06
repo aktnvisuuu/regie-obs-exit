@@ -152,6 +152,8 @@ main{padding:0 16px calc(env(safe-area-inset-bottom) + 92px)}
 #v-lieux .tile .n,#v-musiques .tile .n{font-size:17px;padding-top:8px}
 #v-lieux .tile .k,#v-musiques .tile .k{font-size:11px;margin-top:3px}
 #v-lieux .big span{color:var(--lilac)}#v-musiques .big span{color:var(--yel)}
+.autobar{display:none;width:100%;margin:0 0 12px;padding:11px 14px;border-radius:16px;background:var(--card);text-align:left;font-size:13px;font-weight:700;color:var(--sub)}
+.autobar.on{display:block}.autobar b{color:#1ED760}
 /* Son */
 .strip{background:var(--card);border-radius:26px;padding:16px 16px 10px;margin-bottom:10px}
 .strip.muted .mtr,.strip.muted .fd{opacity:.3}
@@ -196,7 +198,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 .snrow .tt{flex:1;min-width:0;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .snrow .tt small{display:block;font-size:12px;font-weight:600;color:var(--sub)}
 .snrow input{width:92px;flex-shrink:0;background:var(--card2);border:0;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:8px 10px;outline:none}
-#snList{margin-top:8px}
+#snList{margin-top:4px}
+.snrow select{width:150px;flex-shrink:0;background:var(--card2);border:0;border-radius:10px;color:#fff;font-size:13px;font-weight:700;padding:8px;outline:none;-webkit-appearance:none;appearance:none}
+.snrow.bad .nn{color:var(--orange)}
 #pilTitle,#pilSub{white-space:normal;overflow:visible}
 /* ---------- Pied ---------- */
 footer{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;z-index:5;padding:22px 16px calc(env(safe-area-inset-bottom) + 6px);background:linear-gradient(to top,var(--bg) 55%,rgba(10,10,10,0));pointer-events:none}
@@ -281,6 +285,7 @@ nav button[data-v=musiques].on{background:var(--yel)}
     <h2 class="big"><b>Musiques</b><span id="n-musiques">–</span></h2>
     <div class="libbar"><button class="stopall" data-stopall="musiques">■ Tout arrêter</button></div>
     <div class="libwarn" id="w-musiques"></div>
+    <button class="autobar" id="autoBar"></button>
     <div class="grid" id="g-musiques"></div>
   </section>
   <section class="view" id="v-son"></section>
@@ -292,9 +297,10 @@ nav button[data-v=musiques].on{background:var(--yel)}
       <button class="btn sp" id="spConnect">Connecter Spotify</button>
     </div>
     <div class="spc">
-      <div class="rh"><span class="lbl">Pilote OBS · version robuste</span><span class="rstate" id="pilSt">Pas installé</span></div>
-      <div class="sptt" id="pilTitle" style="font-size:17px">Le pilote tourne dans ton OBS cloud, même téléphone verrouillé.</div>
+      <div class="rh"><span class="lbl">Spotify automatique</span><span class="rstate" id="pilSt">Pas installé</span></div>
+      <div class="sptt" id="pilTitle" style="font-size:17px">Un son de la playlist part sur Spotify → sa musique s’affiche sur la caméra.</div>
       <div class="spar" id="pilSub"></div>
+      <label class="check" id="pilOnBox" style="display:none">Mode automatique<input type="checkbox" switch id="pilOn"></label>
     </div>
     <div class="spc">
       <div class="rh"><span class="lbl">1 · Playlist</span></div>
@@ -303,18 +309,12 @@ nav button[data-v=musiques].on{background:var(--yel)}
       <div class="spar" id="snCount" style="margin-top:8px"></div>
     </div>
     <div class="spc">
-      <div class="rh"><span class="lbl">2 · Fichiers sur le serveur</span></div>
-      <div class="field"><label>Dossier des fichiers (dependencies)</label><input id="snDir" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="/…/dependencies"></div>
-      <div class="field"><label>Extension des fichiers</label><select id="snExt"><option>.mp3</option><option>.wav</option><option>.m4a</option><option>.flac</option><option>.mp4</option><option>.mov</option><option>.webm</option><option>.mkv</option></select></div>
-      <p class="note" style="margin:10px 4px 0">Nomme tes fichiers 01, 02, 03… dans l’ordre de la playlist (ex. 01.mp4). Tu peux corriger un nom dans la liste.</p>
+      <div class="rh"><span class="lbl">2 · Morceau → musique</span><span class="rstate" id="mapSt">–</span></div>
+      <p class="note" style="margin:8px 4px 4px">Associé automatiquement par le titre. Corrige une ligne si besoin.</p>
       <div id="snList"></div>
     </div>
     <div class="spc">
-      <div class="rh"><span class="lbl">3 · Création dans OBS</span></div>
-      <div class="field"><label>Placer la scène SONS</label><select id="snPos"><option value="front">Devant l’ingest (visible par-dessus)</option><option value="back">Derrière l’ingest</option></select></div>
-      <h4 style="margin:14px 4px 6px">Ajouter dans les scènes</h4><div id="snScenes"></div>
-      <div class="field"><label>Texte « titre — artiste » (facultatif)</label><select id="spText"></select></div>
-      <button class="btn" id="snBuild">Créer / mettre à jour les sources</button>
+      <div class="rh"><span class="lbl">3 · Installation</span></div>
       <button class="btn sp" id="snPilot">Installer / mettre à jour le pilote</button>
       <div class="splog" id="snLog" style="white-space:pre-line"></div>
     </div>
@@ -358,6 +358,7 @@ nav button[data-v=musiques].on{background:var(--yel)}
     <button class="btn" id="fSave">Enregistrer et connecter</button>
     <button class="btn ghost" id="fLink">🔗 Copier mon lien de connexion</button>
     <div class="field" id="fLinkBox" style="display:none"><label>Lien (garde-le pour toi : il contient le mot de passe)</label><input id="fLinkOut" readonly></div>
+    <button class="btn sp" id="fSpot">🎵 Spotify automatique</button>
     <button class="btn ghost" id="fReload">Recharger scènes et sources</button>
     <button class="btn ghost" id="fClose">Fermer</button>
   </div>
@@ -528,7 +529,7 @@ async function loadInputs(){
       list.push(i.name);
     }catch(e){}
   }));
-  fillSpot();
+  fillSpot();pilotItem();
   S.audio=list.sort((a,b)=>(b===entry)-(a===entry)||a.localeCompare(b,'fr'));
   fillSelects();renderAudio();renderPvTag();
 }
@@ -1063,7 +1064,7 @@ async function spHandleReturn(){
         body:new URLSearchParams({grant_type:'authorization_code',code,redirect_uri:SP_REDIRECT,client_id:SP_ID,code_verifier:ver})});
       const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error_description||j.error||r.status);
       SN.pendingRt=j.refresh_token;openSpotTab();snLog('Spotify autorisé pour le pilote. Installation dès qu’OBS est connecté…');
-      const wait=async()=>{for(let i=0;i<60&&!S.ok;i++)await sleep(500);await snInstallPilot()};wait();
+      const wait=async()=>{for(let i=0;i<80&&!(S.ok&&musicTiles().length&&cfg.sons.tracks.length);i++)await sleep(500);await snInstallPilot()};wait();
     }catch(e){SP.err='Échec de l’autorisation du pilote : '+e.message}
     return;
   }
@@ -1100,38 +1101,39 @@ async function spLoop(){
 }
 function openSpotTab(){S.view='spot';document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.v==='spot'));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-spot'))}
 
-/* ================= 33 sons : préparation OBS + pilote ================= */
-cfg.sons=Object.assign({pl:'https://open.spotify.com/playlist/4oxiAP0a5NawZu1ABSPakF',dir:'',ext:'.mp4',pos:'front',scenes:null,tracks:[],files:{}},cfg.sons||{});
-const SN={pendingRt:null,pil:null,dirTried:false};
-const SONS='SONS',PILOT='_Pilote Spotify EXIT';
+/* ================= Spotify automatique : pilote dans OBS ================= */
+cfg.sons=Object.assign({pl:'https://open.spotify.com/playlist/4oxiAP0a5NawZu1ABSPakF',tracks:[],map:{}},cfg.sons||{});cfg.sons.map=cfg.sons.map||{};
+const SN={pendingRt:null,pil:null};
+const PILOT='_Pilote Spotify EXIT',MUS_PRE='[Musiques] ';
 const nn2=i=>String(i+1).padStart(2,'0');
 function snLog(t){const el=$('snLog');el.textContent=(new Date().toLocaleTimeString('fr-FR')+' · '+t+'\n'+el.textContent).slice(0,1500)}
-function snFile(i){return cfg.sons.files[i]||(nn2(i)+cfg.sons.ext)}
-function snPath(i){const d=(cfg.sons.dir||'').replace(/[\\/]+$/,'');const sep=d.includes('\\')&&!d.includes('/')?'\\':'/';return d?d+sep+snFile(i):snFile(i)}
+function musicTiles(){return S.tiles.filter(t=>t.lib==='musiques').sort((a,b)=>a.label.localeCompare(b.label,'fr',{numeric:true}))}
+const nnOf=lbl=>(lbl.match(/^(\d+)/)||[])[1]||'';
+const titleOf=lbl=>lbl.replace(/^\d+\s*·\s*/,'');
+const N=s=>norm(s).replace(/&/g,'and').replace(/[^a-z0-9]+/g,' ').trim();
+const base=s=>N(String(s).replace(/\s+-\s+.*$/,'').replace(/\(.*?\)|\[.*?\]/g,''));
+const isFr=s=>/fran[cç]ais|french/i.test(s);
+function autoMatch(track,mus){
+  const tf=N(track.name),tb=base(track.name);
+  let c=mus.filter(m=>N(titleOf(m.label))===tf);
+  if(!c.length)c=mus.filter(m=>base(titleOf(m.label))===tb);
+  if(c.length>1){const f=c.filter(m=>isFr(m.label)===isFr(track.name));if(f.length)c=f}
+  if(!c.length)c=mus.filter(m=>base(titleOf(m.label)).length>3&&(tb.includes(base(titleOf(m.label)))||base(titleOf(m.label)).includes(tb)));
+  return c.length?nnOf(c[0].label):'';
+}
+function mapping(){
+  const mus=musicTiles(),out={};
+  for(const t of cfg.sons.tracks){const m=cfg.sons.map[t.id];out[t.id]=m===undefined?autoMatch(t,mus):m}
+  return out;
+}
 function snRender(){
-  $('snPl').value=cfg.sons.pl||'';$('snDir').value=cfg.sons.dir||'';$('snExt').value=cfg.sons.ext||'.mp4';$('snPos').value=cfg.sons.pos||'front';
-  const T=cfg.sons.tracks||[];
+  $('snPl').value=cfg.sons.pl||'';
+  const T=cfg.sons.tracks||[],mus=musicTiles(),M=mapping();
   $('snCount').textContent=T.length?T.length+' morceaux chargés':'Pas encore chargée';
-  $('snList').innerHTML=T.map((t,i)=>`<div class="snrow"><span class="nn">${nn2(i)}</span><div class="tt">${esc(t.name)}<small>${esc(t.artist||'')}</small></div><input data-snf="${i}" value="${esc(snFile(i))}" autocapitalize="off" autocorrect="off" spellcheck="false"></div>`).join('');
-  if(cfg.sons.scenes===null){if(S.ok&&!SN.scTried){SN.scTried=true;snDefaultScenes()}}
-  const chosen=cfg.sons.scenes||[];
-  $('snScenes').innerHTML=S.scenes.filter(n=>n!==SONS&&!n.startsWith('_')).map(n=>`<label class="check">${esc(n)}<input type="checkbox" switch data-sns="${esc(n)}"${chosen.includes(n)?' checked':''}></label>`).join('')||'<div class="note">Connecte-toi à OBS pour voir les scènes.</div>';
-  $('spText').innerHTML='<option value="">Aucun</option>'+S.inputs.filter(i=>i.kind.startsWith('text_')).map(i=>`<option${i.name===cfg.sp.text?' selected':''}>${esc(i.name)}</option>`).join('');
-  if(!cfg.sons.dir&&S.ok&&!SN.dirTried){SN.dirTried=true;snDetectDir()}
-}
-/* Par défaut : les scènes qui contiennent la source ingest (dont celle du « low bitrate ») */
-async function snDefaultScenes(){
-  const entry=entrySource(),out=[];
-  for(const n of S.scenes){if(n===SONS||n.startsWith('_'))continue;
-    try{const it=(await req('GetSceneItemList',{sceneName:n})).sceneItems||[];
-      if(it.some(x=>x.sourceName===entry||/ingest|srt|liveu/i.test(x.sourceName))&&!/offline/i.test(n))out.push(n)}catch(e){}}
-  cfg.sons.scenes=out;saveCfg();snRender();
-}
-async function snDetectDir(){
-  for(const i of S.inputs){if(!/ffmpeg_source|image_source|vlc_source/.test(i.kind))continue;
-    try{const s=(await req('GetInputSettings',{inputName:i.name})).inputSettings||{};const f=s.local_file||s.file||'';
-      const m=f.match(/^(.*[\\/]dependencies)[\\/]/i);if(m){cfg.sons.dir=m[1];saveCfg();$('snDir').value=m[1];snLog('Dossier détecté : '+m[1]);return}}catch(e){}}
-  snLog('Dossier « dependencies » non détecté : ajoute un fichier uploadé dans une source OBS une fois, ou tape le chemin.');
+  const ok=T.filter(t=>M[t.id]).length;
+  const st=$('mapSt');st.textContent=T.length?ok+'/'+T.length+' associés':'–';st.style.background=T.length&&ok===T.length?'var(--g)':T.length?'var(--orange)':'var(--card3)';st.style.color=T.length?'var(--ink)':'#fff';
+  const opts='<option value="">— aucune —</option>'+mus.map(m=>`<option value="${nnOf(m.label)}">${esc(m.label)}</option>`).join('');
+  $('snList').innerHTML=T.length?T.map((t,i)=>`<div class="snrow${M[t.id]?'':' bad'}"><span class="nn">${M[t.id]?'✓':'!'}</span><div class="tt">${esc(t.name)}<small>${esc(t.artist||'')}</small></div><select data-map="${esc(t.id)}">${opts.replace(`value="${M[t.id]}"`,`value="${M[t.id]}" selected`)}</select></div>`).join(''):(mus.length?'':'<div class="note">Aucune musique trouvée dans OBS (sources « [Musiques] … » dans Ingest).</div>');
 }
 function plId(u){const m=String(u).match(/playlist[\/:]([A-Za-z0-9]{10,})/);return m?m[1]:String(u).trim()}
 async function snLoad(){
@@ -1141,95 +1143,64 @@ async function snLoad(){
   try{
     while(url&&tries<10){tries++;let r=await spFetch(url);
       if(r.status===404&&url.includes('/items')){url=url.replace('/items','/tracks');r=await spFetch(url)}
-      if(r.status===403)throw new Error('accès refusé : la playlist doit être à toi ou tu dois en être collaborateur');
+      if(r.status===403)throw new Error('accès refusé : il faut être propriétaire ou collaborateur de la playlist');
       if(!r.ok)throw new Error('HTTP '+r.status);
       const j=await r.json();
       for(const x of j.items||[]){const t=x.track||x.item||{};if(!t||!t.id)continue;out.push({id:t.id,name:t.name||'?',artist:(t.artists||[]).map(a=>a.name).join(', ')})}
       url=j.next?j.next.replace('https://api.spotify.com/v1',''):null;
     }
-    cfg.sons.tracks=out;saveCfg();snRender();snLog(out.length+' morceaux chargés depuis Spotify');
+    cfg.sons.tracks=out;saveCfg();snRender();snLog(out.length+' morceaux chargés');
   }catch(e){snLog('Erreur playlist : '+e.message)}
 }
-const snName=(i,t)=>('[SONS] '+nn2(i)+' · '+(t.name||'')).slice(0,72);
-async function snBuild(){
-  if(!S.ok){toast('OBS non connecté');return}
-  const T=cfg.sons.tracks;if(!T.length){toast('Charge d’abord la playlist');return}
-  if(!cfg.sons.dir){toast('Indique le dossier des fichiers');return}
-  $('snBuild').disabled=true;snLog('Création en cours…');
-  try{
-    const scenes=(await req('GetSceneList')).scenes.map(s=>s.sceneName);
-    if(!scenes.includes(SONS)){await req('CreateScene',{sceneName:SONS});snLog('Scène SONS créée')}
-    let vs={baseWidth:1920,baseHeight:1080};try{vs=await req('GetVideoSettings')}catch(e){}
-    const ex=(await req('GetSceneItemList',{sceneName:SONS})).sceneItems||[];
-    let made=0,upd=0,errs=0;
-    for(let i=0;i<T.length;i++){
-      const st={is_local_file:true,local_file:snPath(i),looping:false,restart_on_activate:true,close_when_inactive:true,clear_on_media_end:true,hw_decode:true};
-      const old=ex.find(it=>it.sourceName.startsWith('[SONS] '+nn2(i)+' ')||it.sourceName==='[SONS] '+nn2(i));
-      try{
-        if(old){await req('SetInputSettings',{inputName:old.sourceName,inputSettings:st,overlay:true});upd++}
-        else{const r=await req('CreateInput',{sceneName:SONS,inputName:snName(i,T[i]),inputKind:'ffmpeg_source',inputSettings:st,sceneItemEnabled:false});
-          try{await req('SetSceneItemTransform',{sceneName:SONS,sceneItemId:r.sceneItemId,sceneItemTransform:{positionX:0,positionY:0,alignment:5,boundsType:'OBS_BOUNDS_SCALE_INNER',boundsAlignment:0,boundsWidth:vs.baseWidth,boundsHeight:vs.baseHeight}})}catch(e){}
-          made++}
-      }catch(e){errs++;snLog('Erreur '+nn2(i)+' : '+e.message)}
-    }
-    snLog(made+' sources créées, '+upd+' mises à jour'+(errs?', '+errs+' erreurs':''));
-    // insérer SONS dans les scènes choisies, devant ou derrière l'ingest
-    const entry=entrySource();
-    for(const sc of (cfg.sons.scenes||[])){
-      if(!scenes.includes(sc))continue;
-      try{
-      const items=(await req('GetSceneItemList',{sceneName:sc})).sceneItems||[];
-      if(items.some(it=>it.sourceName===SONS))continue;
-      const r=await req('CreateSceneItem',{sceneName:sc,sourceName:SONS,sceneItemEnabled:true});
-      const ing=items.find(it=>it.sourceName===entry)||items.find(it=>/ingest|srt|liveu/i.test(it.sourceName));
-      if(ing){const idx=cfg.sons.pos==='back'?ing.sceneItemIndex:ing.sceneItemIndex+1;try{await req('SetSceneItemIndex',{sceneName:sc,sceneItemId:r.sceneItemId,sceneItemIndex:idx})}catch(e){}}
-      snLog('SONS ajoutée dans « '+sc+' »'+(ing?(cfg.sons.pos==='back'?' derrière ':' devant ')+ing.sourceName:''));
-      }catch(e){snLog('Scène « '+sc+' » : '+e.message)}
-    }
-    snLog('Terminé ✓');toast('Sources prêtes');
-  }catch(e){snLog('Erreur : '+e.message)}
-  $('snBuild').disabled=false;
-}
 function wsUrl(){const h=cfg.host.trim();return /^wss?:\/\//i.test(h)?h:'ws://'+h+':'+(cfg.port||4455)}
+function ingestScene(){return S.scenes.find(n=>/^ingest$/i.test(n))||(musicTiles()[0]||{}).c||'Ingest'}
 async function snInstallPilot(){
   const rt=SN.pendingRt;if(!rt){spLogin.mode='pilot';spLogin();return}
   if(!S.ok){snLog('OBS non connecté : installation impossible');return}
-  const T=cfg.sons.tracks;if(!T.length){snLog('Charge d’abord la playlist');return}
+  const M=mapping(),pairs=Object.entries(M).filter(([,n])=>n);
+  if(!pairs.length){snLog('Aucun morceau associé : charge la playlist');return}
   const base=location.origin+location.pathname.replace(/index\.html$/,'').replace(/[^/]*$/,'');
-  const q=new URLSearchParams({cid:SP_ID,rt,ws:wsUrl(),pw:cfg.pass,scene:SONS,m:T.map((t,i)=>t.id+':'+(i+1)).join(',')});
-  if(cfg.sp.text)q.set('txt',cfg.sp.text);
+  const scene=ingestScene();
+  const q=new URLSearchParams({cid:SP_ID,rt,ws:wsUrl(),pw:cfg.pass,scene,pre:MUS_PRE,m:pairs.map(([id,n])=>id+':'+n).join(',')});
   const url=base+'bridge.html#'+q.toString();
   const st={url,width:320,height:60,fps:30,shutdown:false,restart_when_active:false,reroute_audio:false,css:'body{background:transparent!important}'};
   try{
-    const scenes=(await req('GetSceneList')).scenes.map(s=>s.sceneName);
-    if(!scenes.includes(SONS)){await req('CreateScene',{sceneName:SONS})}
     let exists=false;try{await req('GetInputSettings',{inputName:PILOT});exists=true}catch(e){}
     if(exists)await req('SetInputSettings',{inputName:PILOT,inputSettings:st,overlay:true});
-    else await req('CreateInput',{sceneName:SONS,inputName:PILOT,inputKind:'browser_source',inputSettings:st,sceneItemEnabled:true});
-    SN.pendingRt=null;snLog('Pilote '+(exists?'mis à jour':'installé')+' dans OBS ✓ ('+T.length+' morceaux)');toast('Pilote installé');
+    else await req('CreateInput',{sceneName:scene,inputName:PILOT,inputKind:'browser_source',inputSettings:st,sceneItemEnabled:true});
+    SN.pendingRt=null;snLog('Pilote '+(exists?'mis à jour':'installé')+' dans « '+scene+' » ✓ ('+pairs.length+' morceaux)');toast('Spotify automatique installé');
+    await pilotItem();
   }catch(e){snLog('Erreur pilote : '+e.message)}
 }
+/* Interrupteur ON/OFF : active/désactive la source du pilote (désactivée = elle ne tourne plus) */
+async function pilotItem(){
+  try{for(const sc of S.scenes){const it=((await req('GetSceneItemList',{sceneName:sc})).sceneItems||[]).find(i=>i.sourceName===PILOT);
+    if(it){SN.item={scene:sc,id:it.sceneItemId,on:it.sceneItemEnabled};$('pilOnBox').style.display='flex';$('pilOn').checked=it.sceneItemEnabled;renderPilot();return SN.item}}}catch(e){}
+  SN.item=null;$('pilOnBox').style.display='none';renderPilot();return null;
+}
+$('pilOn').onchange=async e=>{haptic();const v=e.target.checked;if(!SN.item)await pilotItem();if(!SN.item)return;
+  try{await req('SetInputSettings',{inputName:PILOT,inputSettings:{shutdown:!v},overlay:true});
+    await req('SetSceneItemEnabled',{sceneName:SN.item.scene,sceneItemId:SN.item.id,sceneItemEnabled:v});SN.item.on=v;if(!v)SN.pil=null;
+    toast(v?'Spotify automatique : ON':'Spotify automatique : OFF');renderPilot()}catch(err){toast('Erreur : '+err.message);e.target.checked=!v}};
 function renderPilot(){
-  const p=SN.pil,st=$('pilSt');if(!st)return;
-  const age=p?Date.now()-p.at:1e9;
-  if(!p){st.textContent='Pas de signal';st.style.background='var(--card3)';st.style.color='#fff';$('pilSub').textContent=S.ok?'Aucun signal du pilote. Installe-le ou vérifie qu’il est dans OBS.':'';return}
-  if(age>15000){st.textContent='Silencieux';st.style.background='var(--orange)';st.style.color='var(--ink)';$('pilSub').textContent='Dernier signal il y a '+Math.round(age/1000)+' s';return}
-  if(p.err){st.textContent='Erreur';st.style.background='var(--red)';st.style.color='#fff';$('pilTitle').textContent=p.err;$('pilSub').textContent='';return}
-  st.textContent='Actif';st.style.background='var(--g)';st.style.color='var(--ink)';
-  $('pilTitle').textContent=p.title?((p.playing?'▶ ':'⏸ ')+p.title):'Rien ne joue';
-  $('pilSub').textContent=p.nn?('Vidéo '+p.nn+(p.paused?' en pause':' à l’antenne')):(p.title&&!p.mapped?'Morceau hors playlist : aucune vidéo':(p.tracks+' morceaux surveillés'));
+  const p=SN.pil,st=$('pilSt'),bar=$('autoBar');if(!st)return;
+  const age=p?Date.now()-p.at:1e9,off=SN.item&&!SN.item.on;
+  let lab,bg,fg='var(--ink)',title,sub='';
+  if(off){lab='OFF';bg='var(--card3)';fg='#fff';title='Mode automatique coupé : tout est manuel.'}
+  else if(!p){lab=SN.item?'Démarrage…':'Pas installé';bg='var(--card3)';fg='#fff';title=SN.item?'Le pilote démarre dans OBS…':'Installe le pilote (étape 3).'}
+  else if(age>15000){lab='Silencieux';bg='var(--orange)';title='Plus de nouvelles du pilote depuis '+Math.round(age/1000)+' s'}
+  else if(p.err){lab='Erreur';bg='var(--red)';fg='#fff';title=p.err}
+  else{lab='Actif';bg='#1ED760';title=p.title?((p.playing?'▶ ':'⏸ ')+p.title):'Rien ne joue sur Spotify';
+    sub=p.nn?('Musique '+p.nn+(p.paused?' en pause':' à l’antenne')):(p.title&&!p.mapped?'Morceau hors liste : aucune musique':(p.tracks+' morceaux surveillés'))}
+  st.textContent=lab;st.style.background=bg;st.style.color=fg;$('pilTitle').textContent=title;$('pilSub').textContent=sub;
+  if(bar){bar.classList.toggle('on',!!SN.item);bar.innerHTML=SN.item?('Spotify auto : <b>'+esc(lab)+'</b>'+(p&&p.title&&!off?' · '+esc((p.playing?'▶ ':'⏸ ')+p.title):'')+' ›'):''}
 }
 $('snPl').onchange=e=>{cfg.sons.pl=e.target.value.trim();saveCfg()};
-$('snDir').onchange=e=>{cfg.sons.dir=e.target.value.trim();saveCfg()};
-$('snExt').onchange=e=>{cfg.sons.ext=e.target.value;saveCfg();snRender()};
-$('snPos').onchange=e=>{cfg.sons.pos=e.target.value;saveCfg()};
-$('snList').addEventListener('change',e=>{const f=e.target.closest('[data-snf]');if(!f)return;const i=+f.dataset.snf,v=f.value.trim();
-  if(!v||v===nn2(i)+cfg.sons.ext)delete cfg.sons.files[i];else cfg.sons.files[i]=v;saveCfg()});
-$('snScenes').addEventListener('change',e=>{const c=e.target.closest('[data-sns]');if(!c)return;const n=c.dataset.sns;
-  cfg.sons.scenes=(cfg.sons.scenes||[]).filter(x=>x!==n);if(c.checked)cfg.sons.scenes.push(n);saveCfg()});
+$('snList').addEventListener('change',e=>{const s=e.target.closest('[data-map]');if(!s)return;cfg.sons.map[s.dataset.map]=s.value;saveCfg();snRender()});
 $('snLoad').onclick=()=>{haptic();snLoad()};
-$('snBuild').onclick=()=>{haptic();snBuild()};
 $('snPilot').onclick=()=>{haptic();if(!cfg.sons.tracks.length){toast('Charge d’abord la playlist');return}snLog('Autorisation Spotify pour le pilote…');spLogin.mode='pilot';spLogin()};
+$('fSpot').onclick=()=>{$('sheet').classList.remove('on');openSpotTab();fillSpot();pilotItem();window.scrollTo(0,0)};
+$('autoBar').onclick=()=>{openSpotTab();fillSpot();pilotItem();window.scrollTo(0,0)};
 setInterval(renderPilot,1000);
 
 function spLog(t){$('spLog').textContent=new Date().toLocaleTimeString('fr-FR')+' · '+t}
@@ -1246,10 +1217,8 @@ function renderSpot(){
 }
 async function fillSpot(){
   snRender();
-  $('spText').innerHTML='<option value="">Aucun</option>'+S.inputs.filter(i=>i.kind.startsWith('text_')).map(i=>`<option${i.name===cfg.sp.text?' selected':''}>${esc(i.name)}</option>`).join('');
   }
 $('spConnect').onclick=()=>{haptic();if(spTok){spTok=null;spSave();SP.playing=null;SP.applied=null;renderSpot();toast('Spotify déconnecté')}else spLogin()};
-$('spText').onchange=e=>{cfg.sp.text=e.target.value;SP.textApplied='';saveCfg()};
 
 /* ================= Réglages ================= */
 function fillSelects(){
