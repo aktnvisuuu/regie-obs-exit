@@ -107,7 +107,9 @@ async function setEn(it,v){await req('SetSceneItemEnabled',{sceneName:SCENE,scen
 async function hasFade(src){try{await req('GetSourceFilter',{sourceName:src,filterName:FADE});return true}catch(e){}
   try{await req('CreateSourceFilter',{sourceName:src,filterName:FADE,filterKind:'color_filter_v2',filterSettings:{opacity:1}});return true}catch(e){return false}}
 async function prep(it){
-  const o=ls('exit-vol:'+it.sourceName);if(o!=null){try{await req('SetInputVolume',{inputName:it.sourceName,inputVolumeMul:+o})}catch(e){}}
+  // ne remet le volume que si un fondu précédent a été interrompu (volume ~0) : sinon on garde le réglage de la Régie
+  let cur=1;try{cur=(await req('GetInputVolume',{inputName:it.sourceName})).inputVolumeMul}catch(e){}
+  const o=ls('exit-vol:'+it.sourceName);if(cur<0.01&&o!=null&&+o>0.001){try{await req('SetInputVolume',{inputName:it.sourceName,inputVolumeMul:+o})}catch(e){}}
   try{await req('SetSourceFilterSettings',{sourceName:it.sourceName,filterName:FADE,filterSettings:{opacity:1},overlay:true})}catch(e){}
 }
 async function fadeOut(it){

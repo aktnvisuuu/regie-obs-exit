@@ -157,6 +157,8 @@ main{padding:0 16px calc(env(safe-area-inset-bottom) + 92px)}
 /* Son */
 .strip{background:var(--card);border-radius:26px;padding:16px 16px 10px;margin-bottom:10px}
 .strip.muted .mtr,.strip.muted .fd{opacity:.3}
+.strip.grp{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 45%,transparent)}
+.strip.grp .nm .n{color:var(--c)}
 .sh{display:flex;align-items:flex-start;gap:10px}
 .nm{flex:1;min-width:0}
 .nm .n{font-size:19px;font-weight:800;letter-spacing:-.03em;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -839,8 +841,10 @@ async function ensureFade(src){
 }
 async function prepLaunch(t){
   // remet le volume et l'opacité d'origine, même si un fondu précédent a été interrompu
-  const o=cfg.fadeOrig[t.src];
-  if(o!=null){try{await req('SetInputVolume',{inputName:t.src,inputVolumeMul:o})}catch(e){}}
+  // volume cible = curseur du groupe (Musiques / Lieux) si réglé, sinon volume d'origine ; ne corrige que si un fondu a été interrompu ou si le groupe a bougé
+  let cur=null;try{cur=(await req('GetInputVolume',{inputName:t.src})).inputVolumeMul}catch(e){}
+  const tgt=(t.lib&&cfg.grpMul[t.lib]!=null)?cfg.grpMul[t.lib]:cfg.fadeOrig[t.src];
+  if(tgt!=null&&(cur==null||cur<0.01||Math.abs(cur-tgt)>0.002)){try{await req('SetInputVolume',{inputName:t.src,inputVolumeMul:tgt})}catch(e){}}
   try{await req('SetSourceFilterSettings',{sourceName:t.src,filterName:FADE,filterSettings:{opacity:1},overlay:true})}catch(e){}
 }
 async function fadeStop(t){
@@ -860,7 +864,7 @@ async function fadeStop(t){
     try{await req('TriggerMediaInputAction',{inputName:t.src,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_STOP'})}catch(e){}
     try{await setVis(t,false)}catch(e){}
     // une fois masqué, on remet tout à 100 % pour le prochain lancement
-    try{await req('SetInputVolume',{inputName:t.src,inputVolumeMul:orig})}catch(e){}
+    try{await req('SetInputVolume',{inputName:t.src,inputVolumeMul:(t.lib&&cfg.grpMul[t.lib]!=null)?cfg.grpMul[t.lib]:orig})}catch(e){}
     if(hasF)try{await req('SetSourceFilterSettings',{sourceName:t.src,filterName:FADE,filterSettings:{opacity:1},overlay:true})}catch(e){}
   }finally{FADING.delete(t.src);renderRegie()}
 }
@@ -978,31 +982,60 @@ $('detail').addEventListener('click',e=>{if(e.target.id==='detail')closeDetail()
 /* ================= Son ================= */
 const strips=new Map();
 const SIL_KINDS=k=>!MEDIA.includes(k)&&k!=='browser_source';
+const GRP={musiques:{re:/^\[Musiques\]/i,label:'Musiques',col:'#FFD45E'},lieux:{re:/^\[Lieux\]/i,label:'Lieux',col:'#B9AEFF'}};
+const grpOf=n=>Object.keys(GRP).find(k=>GRP[k].re.test(n))||'';
+const members=k=>S.audio.filter(n=>grpOf(n)===k);
+cfg.grpMul=cfg.grpMul||{};
+const dbToMul=db=>db<=-60?0:Math.pow(10,db/20);
+function stripHTML(key,i,entry){
+  let name,tag,m,db,col='';
+  if(key.startsWith('grp:')){const k=key.slice(4),mem=members(k);name=GRP[k].label;col=GRP[k].col;
+    m=mem.length&&mem.every(n=>S.mutes[n]);db=S.vol[mem[0]];tag=`<span class="t" style="color:${col}">${mem.length} sources · un seul curseur</span>`}
+  else{name=key===entry?'Micros':key;m=S.mutes[key];db=S.vol[key];
+    tag=key===entry?`<span class="t entry">Entrée LiveU · ${esc(key)}</span>`:`<span class="t">${esc(kindLabel(kindOf(key)))}</span>`}
+  return`<div class="strip${m?' muted':''}${col?' grp':''}" data-a="${i}"${col?` style="--c:${col}"`:''}>
+      <div class="sh"><div class="nm"><div class="n">${esc(name)}</div>${tag}</div><button class="db" data-reset="${i}"><b>${fmtDb(db)}</b><small>dB</small></button></div>
+      <div class="mtr"><div class="ch"><i></i><b></b></div><div class="ch"><i></i><b></b></div></div>
+      <div class="scale"><span>−60</span><span>−40</span><span>−20</span><span>−9</span><span>0</span></div>
+      <div class="row2"><input type="range" class="fd" min="-60" max="0" step="0.5" value="${db==null?0:Math.max(-60,db)}" data-fd="${i}"><button class="pill ${m?'off':'on'}" data-mute="${i}">${m?'MUTE':'ON'}</button></div>
+      <div class="sil"></div></div>`;
+}
 function renderAudio(){
   const v=$('v-son');strips.clear();
   if(!S.audio.length){v.innerHTML='<div class="empty"><img src="logo.png" alt="">'+(S.ok?'Aucune source audio.':'En attente d’OBS…')+'</div>';return}
   const entry=entrySource();
-  v.innerHTML=`<h2 class="big"><b>Son</b><span>${S.audio.length} piste${S.audio.length>1?'s':''}</span></h2>`+S.audio.map((n,i)=>{const m=S.mutes[n],db=S.vol[n];
-    const tag=n===entry?'<span class="t entry">Entrée LiveU</span>':`<span class="t">${esc(kindLabel(kindOf(n)))}</span>`;
-    return`<div class="strip${m?' muted':''}" data-a="${i}">
-      <div class="sh"><div class="nm"><div class="n">${esc(n)}</div>${tag}</div><button class="db" data-reset="${i}"><b>${fmtDb(db)}</b><small>dB</small></button></div>
-      <div class="mtr"><div class="ch"><i></i><b></b></div><div class="ch"><i></i><b></b></div></div>
-      <div class="scale"><span>−60</span><span>−40</span><span>−20</span><span>−9</span><span>0</span></div>
-      <div class="row2"><input type="range" class="fd" min="-60" max="0" step="0.5" value="${db==null?0:Math.max(-60,db)}" data-fd="${i}"><button class="pill ${m?'off':'on'}" data-mute="${i}">${m?'MUTE':'ON'}</button></div>
-      <div class="sil"></div></div>`}).join('')+
-    '<p class="note">Barres = niveau en direct : vert jusqu’à −20 dB, jaune jusqu’à −9 dB, rouge au-delà. Le curseur règle le volume dans OBS ; toucher la valeur en dB la remet à 0. Alerte orange si une piste ne module plus depuis 8 s.</p>';
-  v.querySelectorAll('.strip').forEach(el=>{const n=S.audio[+el.dataset.a];
-    strips.set(n,{el,cov:[...el.querySelectorAll('.ch i')],pk:[...el.querySelectorAll('.ch b')],sil:el.querySelector('.sil'),db:el.querySelector('.db b'),fd:el.querySelector('.fd'),pill:el.querySelector('.pill')})});
+  const singles=S.audio.filter(n=>!grpOf(n));
+  const mix=[...(singles.includes(entry)?[entry]:[]),...Object.keys(GRP).filter(k=>members(k).length).map(k=>'grp:'+k)];
+  const rest=singles.filter(n=>n!==entry);
+  S.rows=[...mix,...rest];
+  v.innerHTML=`<h2 class="big"><b>Son</b><span>Mix du live</span></h2>`+mix.map(k=>stripHTML(k,S.rows.indexOf(k),entry)).join('')+
+    (rest.length?`<div class="cat" style="--c:var(--sub);margin-top:22px"><i></i>Autres pistes</div>`+rest.map(k=>stripHTML(k,S.rows.indexOf(k),entry)).join(''):'')+
+    '<p class="note">« Musiques » règle d’un seul geste le volume des 34 musiques (et « Lieux » des 9 lieux), qu’elles soient lancées à la main ou par Spotify. « Micros » = le son qui arrive du LiveU. Toucher la valeur en dB la remet à 0.</p>';
+  v.querySelectorAll('.strip').forEach(el=>{const key=S.rows[+el.dataset.a];
+    strips.set(key,{el,cov:[...el.querySelectorAll('.ch i')],pk:[...el.querySelectorAll('.ch b')],sil:el.querySelector('.sil'),db:el.querySelector('.db b'),fd:el.querySelector('.fd'),pill:el.querySelector('.pill')})});
 }
-function updateMute(n){const st=strips.get(n);if(!st)return;const m=S.mutes[n];st.el.classList.toggle('muted',m);st.pill.className='pill '+(m?'off':'on');st.pill.textContent=m?'MUTE':'ON';updateAlert()}
+function updateMute(n){const g=grpOf(n),key=g?'grp:'+g:n,st=strips.get(key);if(!st)return;const m=g?members(g).every(x=>S.mutes[x]):S.mutes[n];st.el.classList.toggle('muted',m);st.pill.className='pill '+(m?'off':'on');st.pill.textContent=m?'MUTE':'ON';updateAlert()}
 const volQ=new Map();
 function sendVol(n,db){const q=volQ.get(n)||{};q.v=db;volQ.set(n,q);if(q.t)return;
   q.t=setTimeout(()=>{q.t=null;req('SetInputVolume',{inputName:n,inputVolumeDb:q.v}).catch(()=>{})},70)}
-$('v-son').addEventListener('input',e=>{const f=e.target.closest('[data-fd]');if(!f)return;const n=S.audio[+f.dataset.fd];
-  let db=+f.value;if(db<=-60)db=-100;S.vol[n]=db;S.drag[n]=Date.now();strips.get(n).db.textContent=fmtDb(db);sendVol(n,db)});
+const playingOf=k=>S.tiles.filter(t=>t.lib===k&&t.vis).map(t=>t.src);
+$('v-son').addEventListener('input',e=>{const f=e.target.closest('[data-fd]');if(!f)return;const key=S.rows[+f.dataset.fd];
+  let db=+f.value;if(db<=-60)db=-100;strips.get(key).db.textContent=fmtDb(db);
+  if(key.startsWith('grp:')){const k=key.slice(4);cfg.grpMul[k]=dbToMul(db);
+    // pendant le glissé : seulement ce qui joue (réactif) ; au relâchement : toutes les sources du groupe
+    for(const n of playingOf(k)){S.vol[n]=db;S.drag[n]=Date.now();sendVol(n,db)}return}
+  S.vol[key]=db;S.drag[key]=Date.now();sendVol(key,db)});
+$('v-son').addEventListener('change',async e=>{const f=e.target.closest('[data-fd]');if(!f)return;const key=S.rows[+f.dataset.fd];
+  if(!key.startsWith('grp:'))return;const k=key.slice(4);let db=+f.value;if(db<=-60)db=-100;saveCfg();
+  for(const n of members(k)){S.vol[n]=db;S.drag[n]=Date.now();req('SetInputVolume',{inputName:n,inputVolumeDb:db}).catch(()=>{})}
+  toast(GRP[k].label+' : '+fmtDb(db)+(db>-100?' dB':''))});
 $('v-son').addEventListener('click',async e=>{
-  const m=e.target.closest('[data-mute]');if(m){haptic();try{await req('ToggleInputMute',{inputName:S.audio[+m.dataset.mute]})}catch(err){toast('Erreur : '+err.message)}return}
-  const r=e.target.closest('[data-reset]');if(r){haptic();const n=S.audio[+r.dataset.reset];S.vol[n]=0;const st=strips.get(n);st.fd.value=0;st.db.textContent=fmtDb(0);try{await req('SetInputVolume',{inputName:n,inputVolumeDb:0})}catch(err){}}
+  const m=e.target.closest('[data-mute]');if(m){haptic();const key=S.rows[+m.dataset.mute];
+    if(key.startsWith('grp:')){const mem=members(key.slice(4)),to=!mem.every(n=>S.mutes[n]);await Promise.all(mem.map(n=>req('SetInputMute',{inputName:n,inputMuted:to}).catch(()=>{})));return}
+    try{await req('ToggleInputMute',{inputName:key})}catch(err){toast('Erreur : '+err.message)}return}
+  const r=e.target.closest('[data-reset]');if(r){haptic();const key=S.rows[+r.dataset.reset];const st=strips.get(key);st.fd.value=0;st.db.textContent=fmtDb(0);
+    if(key.startsWith('grp:')){const k=key.slice(4);cfg.grpMul[k]=1;saveCfg();for(const n of members(k)){S.vol[n]=0;S.drag[n]=Date.now();req('SetInputVolume',{inputName:n,inputVolumeDb:0}).catch(()=>{})}return}
+    S.vol[key]=0;try{await req('SetInputVolume',{inputName:key,inputVolumeDb:0})}catch(err){}}
 });
 let lastF=performance.now();
 function meterFrame(now){
@@ -1014,12 +1047,17 @@ function meterFrame(now){
       if(st){st.cov[c].style.transform='scaleX('+(1-lvl(d)).toFixed(3)+')';st.pk[c].style.left='calc('+(lvl(h[c])*100).toFixed(1)+'% - 3px)'}}
     if(!S.mutes[n])mx=Math.max(mx,...lv);
   }
+  if(S.view==='son')for(const k of Object.keys(GRP)){const st=strips.get('grp:'+k);if(!st)continue;
+    const agg=[-100,-100];for(const n of members(k)){if(S.mutes[n])continue;let lv=S.lv[n];if(!lv||now-(S.lvT[n]||0)>400)continue;agg[0]=Math.max(agg[0],lv[0]);agg[1]=Math.max(agg[1],lv[1]??lv[0])}
+    const hk='grp:'+k,hh=S.hold[hk]||(S.hold[hk]=[-100,-100]);
+    for(let c=0;c<2;c++){hh[c]=Math.max(agg[c],hh[c]-dt*20);st.cov[c].style.transform='scaleX('+(1-lvl(agg[c])).toFixed(3)+')';st.pk[c].style.left='calc('+(lvl(hh[c])*100).toFixed(1)+'% - 3px)'}}
   $('vuCov').style.transform='scaleY('+(1-lvl(mx)).toFixed(3)+')';
   requestAnimationFrame(meterFrame);
 }
 function silenceTick(){
   const entry=entrySource(),now=Date.now();
   strips.forEach((st,n)=>{
+    if(n.startsWith('grp:'))return;
     const watch=n===entry||SIL_KINDS(kindOf(n));const s=Math.round((now-(S.heard[n]||now))/1000);
     st.sil.textContent=watch&&S.ok&&!S.mutes[n]&&s>=8?'⚠ Ne module plus depuis '+s+' s':'';
   });
