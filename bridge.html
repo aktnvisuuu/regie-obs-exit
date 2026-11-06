@@ -98,7 +98,7 @@ async function player(){
 }
 
 /* ---------- Pilotage ---------- */
-const ST={shown:null,paused:false,track:'',title:'',artist:'',playing:false,lastDrift:0,err:'',lastText:'',showAt:0,override:''};
+const ST={shown:null,paused:false,track:'',title:'',artist:'',playing:false,lastDrift:0,err:'',lastText:'',showAt:0,override:'',lastProg:0,lastProgAt:0};
 const FADE='_Fondu EXIT',FADE_MS=900,FADE_STEPS=10;
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
 async function media(it,action){await req('TriggerMediaInputAction',{inputName:it.sourceName,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_'+action})}
@@ -130,11 +130,11 @@ async function show(nn,prog){
   // une autre musique encore affichée (lancée à la main) : on la fait sortir en fondu
   ITEMS.filter(o=>o!==it&&o.sceneItemEnabled&&o.sourceName.startsWith(PRE)).forEach(o=>fadeOut(o));
   await prep(it);await setEn(it,true);await media(it,'RESTART');await sleep(150);await seek(it,prog+150);
-  ST.shown=nn;ST.paused=false;ST.lastDrift=Date.now();ST.showAt=Date.now();log('▶ '+nn+' '+ST.title);
+  ST.shown=nn;ST.paused=false;ST.lastDrift=Date.now();ST.showAt=Date.now();ST.lastProg=prog;ST.lastProgAt=Date.now();log('▶ '+nn+' '+ST.title);
 }
-async function resume(nn,prog){const it=itemOf(nn);if(!it)return;await prep(it);await setEn(it,true);await media(it,'PLAY');await seek(it,prog);ST.paused=false;ST.lastDrift=Date.now();ST.showAt=Date.now();log('▶ reprise '+nn)}
+async function resume(nn,prog){const it=itemOf(nn);if(!it)return;await prep(it);await setEn(it,true);await media(it,'PLAY');await seek(it,prog);ST.paused=false;ST.lastDrift=Date.now();ST.showAt=Date.now();ST.lastProg=prog;ST.lastProgAt=Date.now();log('▶ reprise '+nn)}
 async function drift(nn,prog){
-  if(Date.now()-ST.lastDrift<5000)return;ST.lastDrift=Date.now();
+  if(Date.now()-ST.lastDrift<2500)return;ST.lastDrift=Date.now();
   const it=itemOf(nn);if(!it||!it.sceneItemEnabled)return;
   try{const s=await req('GetMediaInputStatus',{inputName:it.sourceName});
     if(typeof s.mediaCursor==='number'&&Math.abs(s.mediaCursor-prog)>1200&&prog<(s.mediaDuration||1e12)-1500){await seek(it,prog);log('↻ recalage '+nn)}
@@ -158,7 +158,13 @@ async function step(){
     if(ST.shown===nn&&!ST.paused&&cur&&!cur.sceneItemEnabled&&Date.now()-ST.showAt>2500){ST.override=tid;ST.shown=null;log('Arrêt manuel respecté');return}
     if(ST.shown!==nn){const old=ST.shown&&itemOf(ST.shown);if(old&&old.sceneItemEnabled)fadeOut(old);await show(nn,prog)}
     else if(ST.paused)await resume(nn,prog);
-    else await drift(nn,prog);
+    else{
+      // saut dans le morceau (ex. 0:45 → 2:14) : on recale l'asset immédiatement
+      const now=Date.now(),exp=ST.lastProgAt?ST.lastProg+(now-ST.lastProgAt):prog;
+      if(ST.lastProgAt&&Math.abs(prog-exp)>1500){const it2=itemOf(nn);if(it2&&it2.sceneItemEnabled){await seek(it2,prog+100);ST.lastDrift=now;log('⤳ saut à '+Math.floor(prog/60000)+':'+String(Math.floor(prog/1000)%60).padStart(2,'0'))}}
+      else await drift(nn,prog);
+    }
+    ST.lastProg=prog;ST.lastProgAt=Date.now();
     await setText();
   }else if(ST.shown){
     const cur=itemOf(ST.shown);
