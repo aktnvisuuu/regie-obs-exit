@@ -204,6 +204,7 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 .snrow select{width:150px;flex-shrink:0;background:var(--card2);border:0;border-radius:10px;color:#fff;font-size:13px;font-weight:700;padding:8px;outline:none;-webkit-appearance:none;appearance:none}
 .snrow.bad .nn{color:var(--orange)}
 #pilTitle,#pilSub{white-space:normal;overflow:visible}
+#pilSub{white-space:pre-line}
 /* ---------- Pied ---------- */
 footer{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;z-index:5;padding:22px 16px calc(env(safe-area-inset-bottom) + 6px);background:linear-gradient(to top,var(--bg) 55%,rgba(10,10,10,0));pointer-events:none}
 footer nav{pointer-events:auto}
@@ -833,7 +834,7 @@ async function goScene(n){if(!n||n===S.program)return;haptic();try{await req('Se
 
 const setVis=(t,v)=>req('SetSceneItemEnabled',{sceneName:t.c,sceneItemId:t.id,sceneItemEnabled:v});
 /* Fondu de sortie : son + image baissent sur ~1 s, puis arrêt. Au lancement, tout est remis à 100 %. */
-const FADE='_Fondu EXIT',FADE_MS=1000,FADE_STEPS=12;
+const FADE='_Fondu EXIT',FADE_MS=500,FADE_STEPS=8;
 cfg.fadeOrig=cfg.fadeOrig||{};const FADING=new Set();
 async function ensureFade(src){
   try{await req('GetSourceFilter',{sourceName:src,filterName:FADE});return true}catch(e){}
@@ -1193,14 +1194,18 @@ async function snLoad(){
 function wsUrl(){const h=cfg.host.trim();return /^wss?:\/\//i.test(h)?h:'ws://'+h+':'+(cfg.port||4455)}
 function ingestScene(){return S.scenes.find(n=>/^ingest$/i.test(n))||(musicTiles()[0]||{}).c||'Ingest'}
 async function snInstallPilot(){
-  const rt=SN.pendingRt;if(!rt){spLogin.mode='pilot';spLogin();return}
+  let rt=SN.pendingRt;
+  if(!rt&&S.ok){try{const u=(await req('GetInputSettings',{inputName:PILOT})).inputSettings.url||'';rt=new URLSearchParams(u.split('#')[1]||'').get('rt')||null;if(rt)snLog('Mise à jour du pilote existant (sans nouvelle autorisation)')}catch(e){}}
+  if(!rt){spLogin.mode='pilot';spLogin();return}
   if(!S.ok){snLog('OBS non connecté : installation impossible');return}
   const M=mapping(),pairs=Object.entries(M).filter(([,n])=>n);
   if(!pairs.length){snLog('Aucun morceau associé : charge la playlist');return}
   const base=location.origin+location.pathname.replace(/index\.html$/,'').replace(/[^/]*$/,'');
   const scene=ingestScene();
-  const q=new URLSearchParams({cid:SP_ID,rt,ws:wsUrl(),pw:cfg.pass,scene,pre:MUS_PRE,m:pairs.map(([id,n])=>id+':'+n).join(',')});
-  const url=base+'bridge.html#'+q.toString();
+  const tt={};for(const t of cfg.sons.tracks){const n=M[t.id];if(!n)continue;tt[N(t.name)]=n;const b=base(t.name);if(!(b in tt))tt[b]=n}
+  for(const m of musicTiles()){const n=nnOf(m.label),ti=titleOf(m.label);if(!(N(ti) in tt))tt[N(ti)]=n}
+  const q=new URLSearchParams({cid:SP_ID,rt,ws:wsUrl(),pw:cfg.pass,scene,pre:MUS_PRE,m:pairs.map(([id,n])=>id+':'+n).join(','),tt:JSON.stringify(tt)});
+  const url=base+'bridge.html?v='+Date.now()+'#'+q.toString();
   const st={url,width:320,height:60,fps:30,shutdown:false,restart_when_active:false,reroute_audio:false,css:'body{background:transparent!important}'};
   try{
     let exists=false;try{await req('GetInputSettings',{inputName:PILOT});exists=true}catch(e){}
@@ -1230,16 +1235,19 @@ function renderPilot(){
   else if(p.err){lab='Erreur';bg='var(--red)';fg='#fff';title=p.err}
   else{lab='Actif';bg='#1ED760';title=p.title?((p.playing?'▶ ':'⏸ ')+p.title):'Rien ne joue sur Spotify';
     sub=p.nn?('Musique '+p.nn+(p.paused?' en pause':' à l’antenne')):(p.title&&!p.mapped?'Morceau hors liste : aucune musique':(p.tracks+' morceaux surveillés'))}
-  st.textContent=lab;st.style.background=bg;st.style.color=fg;$('pilTitle').textContent=title;$('pilSub').textContent=sub;
+  st.textContent=lab;st.style.background=bg;st.style.color=fg;$('pilTitle').textContent=title;$('pilSub').textContent=sub+(p&&p.logs&&p.logs.length&&!off?'\n'+p.logs.slice(0,4).join('\n'):'');
   if(bar){bar.classList.add('on');bar.innerHTML=SN.item?('🎵 Spotify auto : <b>'+esc(lab)+'</b>'+(p&&p.title&&!off?' · '+esc((p.playing?'▶ ':'⏸ ')+p.title):'')+' ›'):(spTok?'🎵 Spotify connecté · <b>installer le mode automatique ›</b>':'🎵 <b>Connecter Spotify</b> pour lancer les musiques automatiquement ›')}
 }
 $('snPl').onchange=e=>{cfg.sons.pl=e.target.value.trim();saveCfg()};
 $('snList').addEventListener('change',e=>{const s=e.target.closest('[data-map]');if(!s)return;cfg.sons.map[s.dataset.map]=s.value;saveCfg();snRender()});
 $('snLoad').onclick=()=>{haptic();snLoad()};
-$('snPilot').onclick=()=>{haptic();if(!cfg.sons.tracks.length){toast('Charge d’abord la playlist');return}snLog('Autorisation Spotify pour le pilote…');spLogin.mode='pilot';spLogin()};
+$('snPilot').onclick=()=>{haptic();if(!cfg.sons.tracks.length){toast('Charge d’abord la playlist');return}snInstallPilot()};
 $('fSpot').onclick=()=>{$('sheet').classList.remove('on');openSpotTab();fillSpot();pilotItem();window.scrollTo(0,0)};
 $('autoBar').onclick=()=>{openSpotTab();fillSpot();pilotItem();window.scrollTo(0,0)};
 setInterval(renderPilot,1000);
+setInterval(async()=>{if(!S.ok||document.hidden)return;
+  try{const v=(await req('GetPersistentData',{realm:'OBS_WEBSOCKET_DATA_REALM_GLOBAL',slotName:'exitPilote'})).slotValue;
+    if(v&&v.regieExit==='pilote'&&(!SN.pil||v.ts>SN.pil.ts)){SN.pil=Object.assign({},v,{at:Date.now()-Math.max(0,Math.min(60000,Date.now()-v.ts))});renderPilot()}}catch(e){}},2000);
 
 function spLog(t){$('spLog').textContent=new Date().toLocaleTimeString('fr-FR')+' · '+t}
 function renderSpot(){

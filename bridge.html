@@ -23,11 +23,21 @@ const P=new URLSearchParams(location.hash.slice(1));
 const CID=P.get('cid')||'',WS=P.get('ws')||'',PW=(P.get('pw')||'').trim(),SCENE=P.get('scene')||'Ingest',TXT=P.get('txt')||'',PRE=P.get('pre')||'[Musiques] ';
 const DEBUG=P.has('debug');
 const MAP={};(P.get('m')||'').split(',').filter(Boolean).forEach(x=>{const i=x.lastIndexOf(':');if(i>0)MAP[x.slice(0,i)]=x.slice(i+1).padStart(2,'0')});
+const N=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,' ').trim();
+const BASE=s=>N(String(s).replace(/\s+-\s+.*$/,'').replace(/\(.*?\)|\[.*?\]/g,''));
+let TT={};try{TT=JSON.parse(P.get('tt')||'{}')}catch(e){}
+function nnFor(it){
+  if(!it)return null;
+  if(MAP[it.id])return MAP[it.id];
+  if(it.linked_from&&MAP[it.linked_from.id])return MAP[it.linked_from.id];
+  const n=it.name||'';return TT[N(n)]||TT[BASE(n)]||null;
+}
 const RT0=P.get('rt')||'';
 let rt=RT0;try{rt=localStorage.getItem('exit-rt:'+RT0.slice(-16))||RT0}catch(e){}
 let at=null,atExp=0;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-function log(t){console.log('[Pilote EXIT]',t);if(DEBUG){const s=document.getElementById('s');s.style.display='block';s.textContent=new Date().toLocaleTimeString('fr-FR')+' · '+t}}
+const LOGS=[];
+function log(t){console.log('[Pilote EXIT]',t);LOGS.unshift(new Date().toLocaleTimeString('fr-FR')+' · '+t);LOGS.length=Math.min(LOGS.length,8);if(DEBUG){const s=document.getElementById('s');s.style.display='block';s.textContent=new Date().toLocaleTimeString('fr-FR')+' · '+t}}
 
 /* ---------- SHA-256 (auth obs-websocket) ---------- */
 function sha256(bytes){
@@ -99,7 +109,7 @@ async function player(){
 
 /* ---------- Pilotage ---------- */
 const ST={shown:null,paused:false,track:'',title:'',artist:'',playing:false,lastDrift:0,err:'',lastText:'',showAt:0,override:'',lastProg:0,lastProgAt:0};
-const FADE='_Fondu EXIT',FADE_MS=900,FADE_STEPS=10;
+const FADE='_Fondu EXIT',FADE_MS=500,FADE_STEPS=8;const FADING=new Set();
 const ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}};
 async function media(it,action){await req('TriggerMediaInputAction',{inputName:it.sourceName,mediaAction:'OBS_WEBSOCKET_MEDIA_INPUT_ACTION_'+action})}
 async function seek(it,ms){if(ms>800)await req('SetMediaInputCursor',{inputName:it.sourceName,mediaCursor:Math.round(ms)})}
@@ -113,6 +123,7 @@ async function prep(it){
   try{await req('SetSourceFilterSettings',{sourceName:it.sourceName,filterName:FADE,filterSettings:{opacity:1},overlay:true})}catch(e){}
 }
 async function fadeOut(it){
+  if(FADING.has(it.sourceName))return;FADING.add(it.sourceName);try{
   let orig=1;try{orig=(await req('GetInputVolume',{inputName:it.sourceName})).inputVolumeMul}catch(e){}
   const saved=ls('exit-vol:'+it.sourceName);if(saved==null||orig>0.001)ls('exit-vol:'+it.sourceName,String(orig));orig=+(ls('exit-vol:'+it.sourceName)||1);
   const f=await hasFade(it.sourceName);
@@ -124,11 +135,13 @@ async function fadeOut(it){
   try{await setEn(it,false)}catch(e){}
   try{await req('SetInputVolume',{inputName:it.sourceName,inputVolumeMul:orig})}catch(e){}
   if(f)try{await req('SetSourceFilterSettings',{sourceName:it.sourceName,filterName:FADE,filterSettings:{opacity:1},overlay:true})}catch(e){}
+  }finally{FADING.delete(it.sourceName)}
 }
 async function show(nn,prog){
   const it=itemOf(nn);if(!it)throw new Error('Source '+PRE+nn+' absente de '+SCENE);
   // une autre musique encore affichée (lancée à la main) : on la fait sortir en fondu
   ITEMS.filter(o=>o!==it&&o.sceneItemEnabled&&o.sourceName.startsWith(PRE)).forEach(o=>fadeOut(o));
+  if(FADING.has(it.sourceName))await sleep(FADE_MS+150);
   await prep(it);await setEn(it,true);await media(it,'RESTART');await sleep(150);await seek(it,prog+150);
   ST.shown=nn;ST.paused=false;ST.lastDrift=Date.now();ST.showAt=Date.now();ST.lastProg=prog;ST.lastProgAt=Date.now();log('▶ '+nn+' '+ST.title);
 }
@@ -146,8 +159,9 @@ async function setText(){
 }
 async function step(){
   const p=await player();if(!p)return;
-  const it=p.item||{},tid=it.id||'',nn=MAP[tid]||null,playing=!!p.is_playing;
-  const prog=(p.progress_ms||0)+(p._lat||0);
+  const it=p.item||{},tid=it.id||'',nn=nnFor(it),playing=!!p.is_playing;
+  const prog=(p.progress_ms||0)+(p._lat||0);ST.lastNn=nn;
+  if(tid&&tid!==ST.track)log((nn?'Spotify : '+(it.name||'?')+' → musique '+nn:'Spotify : '+(it.name||'?')+' (pas dans la liste)'));
   if(tid!==ST.track)ST.override='';
   ST.playing=playing;ST.track=tid;ST.title=it.name||'';ST.artist=(it.artists||[]).map(a=>a.name).join(', ');
   if(!O.ok)return;
@@ -156,7 +170,7 @@ async function step(){
     if(ST.override===tid)return;                                  // arrêtée à la main : on n'insiste pas
     const cur=itemOf(nn);
     if(ST.shown===nn&&!ST.paused&&cur&&!cur.sceneItemEnabled&&Date.now()-ST.showAt>2500){ST.override=tid;ST.shown=null;log('Arrêt manuel respecté');return}
-    if(ST.shown!==nn){const old=ST.shown&&itemOf(ST.shown);if(old&&old.sceneItemEnabled)fadeOut(old);await show(nn,prog)}
+    if(ST.shown!==nn){await show(nn,prog)}
     else if(ST.paused)await resume(nn,prog);
     else{
       // saut dans le morceau (ex. 0:45 → 2:14) : on recale l'asset immédiatement
@@ -175,10 +189,11 @@ async function step(){
 let lastSig='',lastSent=0;
 async function status(force){
   if(!O.ok)return;
-  const st={regieExit:'pilote',v:1,playing:ST.playing,title:ST.title,artist:ST.artist,nn:ST.shown,paused:ST.paused,mapped:!!MAP[ST.track],tracks:Object.keys(MAP).length,err:ST.err,ts:Date.now()};
+  const st={regieExit:'pilote',v:2,playing:ST.playing,title:ST.title,artist:ST.artist,track:ST.track,nn:ST.shown,paused:ST.paused,mapped:!!ST.lastNn,tracks:Object.keys(MAP).length,err:ST.err,logs:LOGS.slice(0,6),ts:Date.now()};
   const sig=JSON.stringify([st.playing,st.title,st.nn,st.paused,st.err]);
   if(!force&&sig===lastSig&&Date.now()-lastSent<4000)return;
   lastSig=sig;lastSent=Date.now();
+  try{await req('SetPersistentData',{realm:'OBS_WEBSOCKET_DATA_REALM_GLOBAL',slotName:'exitPilote',slotValue:st})}catch(e){}
   try{await req('BroadcastCustomEvent',{eventData:st})}catch(e){}
 }
 async function main(){
