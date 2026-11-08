@@ -308,7 +308,10 @@ nav button[data-v=musiques].on{background:var(--yel)}
   <div class="panel">
     <div class="grab"></div>
     <h3>Réglages</h3>
-    <div class="sub">Connexion à OBS (irl.run → Settings → System). · Version du 8 nov.</div>
+    <button class="btn" id="fLink" style="margin-top:12px">📤 Partager l’accès à la Régie</button>
+    <div class="note" style="margin:8px 4px 0">Envoie ce lien à ton équipe : en l’ouvrant, la Régie est connectée directement, sans rien taper. Il contient le mot de passe OBS : ne l’envoie qu’aux gens de confiance.</div>
+    <div class="field" id="fLinkBox" style="display:none"><label>Lien d’accès</label><input id="fLinkOut" readonly></div>
+    <div class="sub" style="margin-top:14px">Connexion à OBS (irl.run → Settings → System). · Version du 8 nov.</div>
     <div class="field"><label>Adresse OBS (IP, domaine ou wss://…)</label><input id="fHost" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="wss://…irl.run:4456"></div>
     <div class="field"><label>Port (ignoré avec ws:// ou wss://)</label><input id="fPort" inputmode="numeric" placeholder="4455"></div>
     <div class="field"><label>Mot de passe WebSocket</label><input id="fPass" type="password" autocapitalize="off" autocorrect="off" placeholder="••••••"></div>
@@ -330,8 +333,6 @@ nav button[data-v=musiques].on{background:var(--yel)}
     </select></div>
     <label class="check">Masquer les vidéos à la fin<input type="checkbox" switch id="fAuto"></label>
     <button class="btn" id="fSave">Enregistrer et connecter</button>
-    <button class="btn ghost" id="fLink">🔗 Copier mon lien de connexion</button>
-    <div class="field" id="fLinkBox" style="display:none"><label>Lien (garde-le pour toi : il contient le mot de passe)</label><input id="fLinkOut" readonly></div>
     <button class="btn ghost" id="fReload">Recharger scènes et sources</button>
     <button class="btn ghost" id="fClose">Fermer</button>
   </div>
@@ -354,7 +355,7 @@ cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};cfg.pvOn=true;cfg.pass=String(cfg.pa
 /* Lien de connexion : #host=…&pass=… (le # n'est jamais envoyé au serveur GitHub) */
 let fromLink=false;
 try{const hs=location.hash.slice(1);if(hs&&hs!==cfg.lastHash){const p=new URLSearchParams(hs);
-  for(const k of['host','pass','port','entry','secours'])if(p.has(k)){cfg[k]=p.get(k).trim();fromLink=true}
+  for(const k of['host','pass','port','entry','tw'])if(p.has(k)){cfg[k]=p.get(k).trim();fromLink=true}
   if(fromLink){cfg.lastHash=hs;try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}}}catch(e){}
 /* Spotify n'est plus utilisé : on efface ses restes */
 function saveCfg(){try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}
@@ -1043,11 +1044,13 @@ function fillSelects(){
 function openSettings(){$('fTw').value=cfg.tw||'';$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fQ').value=cfg.pvQ;$('fFps').value=String(cfg.pvFps||3);fillSelects();$('sheet').classList.add('on')}
 $('gear').onclick=openSettings;
 $('fLink').onclick=async()=>{
-  haptic();const p=new URLSearchParams();p.set('host',cfg.host);p.set('pass',cfg.pass);
-  if(cfg.entry)p.set('entry',cfg.entry);
+  haptic();if(!cfg.host||!cfg.pass){toast('Connecte-toi d’abord à OBS');return}
+  const p=new URLSearchParams();p.set('host',cfg.host);p.set('pass',cfg.pass);if(cfg.tw)p.set('tw',cfg.tw);if(cfg.entry)p.set('entry',cfg.entry);
   const url=location.origin+location.pathname+'#'+p.toString();
   $('fLinkBox').style.display='block';$('fLinkOut').value=url;
-  try{await navigator.clipboard.writeText(url);toast('Lien copié')}catch(e){$('fLinkOut').select();toast('Sélectionne et copie le lien')}
+  // feuille de partage iOS (Messages, WhatsApp, AirDrop…) si dispo, sinon copie
+  if(navigator.share){try{await navigator.share({title:'Régie EXIT',text:'Accès à la Régie EXIT (ouvre le lien, c’est connecté) :',url});return}catch(e){if(e&&e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(url);toast('Lien copié : colle-le dans un message')}catch(e){$('fLinkOut').select();toast('Sélectionne et copie le lien')}
 };
 $('fClose').onclick=()=>$('sheet').classList.remove('on');
 $('fReload').onclick=()=>{haptic();$('sheet').classList.remove('on');if(S.ok){loadAll();toast('Rechargé')}else connect()};
@@ -1107,7 +1110,7 @@ $('clock').textContent=clockTxt();
 $('pvInfo').textContent=(cfg.pvFps||3)+' img/s';applyPvOn();renderPvTag();renderRegie();renderAudio();renderStats();renderLiveBadge();wake();
 requestAnimationFrame(meterFrame);pvLoop();frozenLoop();
 
-if(fromLink)setTimeout(()=>toast('Connexion configurée par le lien'),400);
+if(fromLink)setTimeout(()=>toast('Accès configuré ✓ Tu peux ajouter l’appli à l’écran d’accueil'),400);
 if(cfg.host)connect();else{pvMsg('Configure la connexion ⚙︎');openSettings()}
 </script>
 </body>
