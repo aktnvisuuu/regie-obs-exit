@@ -56,19 +56,10 @@ header.nopv .pv{display:none}
 .seg button{padding:6px 12px;font-size:12px;font-weight:800;border-radius:999px;color:#ddd;letter-spacing:-.01em}
 .seg button.on{background:var(--g);color:var(--ink)}
 
-.pvInfo{position:relative;margin-left:auto;font-size:11px;font-weight:700;color:#ddd;background:rgba(10,10,10,.72);padding:6px 10px;border-radius:999px;font-variant-numeric:tabular-nums;box-shadow:inset 0 0 0 1.5px rgba(43,224,127,.55)}
-.pvInfo::after{content:' ▾';color:var(--g)}
-.pvInfo select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;-webkit-appearance:none;appearance:none;cursor:pointer}
 .vu{position:absolute;right:8px;top:10px;bottom:10px;width:6px;border-radius:3px;overflow:hidden;background:linear-gradient(to top,var(--g) 0 66%,var(--lime) 66% 85%,var(--red) 85%)}
 .vu i{position:absolute;inset:0;background:#262626;transform-origin:top;transform:scaleY(1)}
 
 /* Barre sous l'aperçu */
-.pvbar{display:flex;align-items:center;gap:8px;margin-top:8px}
-header.nopv .pvbar{display:none}
-.pvbar .seg{position:static;background:var(--card);backdrop-filter:none;-webkit-backdrop-filter:none;padding:3px}
-.pvbar .seg button{padding:7px 11px;white-space:nowrap}
-.pvbar .pvInfo{background:var(--card);padding:8px 11px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.pvbar .seg{flex:none}
 /* Débit LiveU */
 .rate{margin-top:10px;background:var(--card);border-radius:24px;padding:14px 16px 12px;position:relative;overflow:hidden}
 .rh{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -94,7 +85,9 @@ header.nopv .pvbar{display:none}
 .eye.off{color:var(--sub)}
 .pvShow{display:none;width:100%;margin-top:10px;height:46px;border-radius:16px;background:var(--card);color:var(--g);font-weight:800;font-size:15px;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--g) 40%,transparent)}
 header.nopv .pvShow{display:block}
-.st.clk{flex:0 0 auto}
+.st.pvInfo{position:relative;flex:0 0 auto;box-shadow:inset 0 0 0 1.5px rgba(43,224,127,.45)}
+.st.pvInfo b{font-variant-numeric:tabular-nums}
+.st.pvInfo select{position:absolute;inset:0;width:100%;height:100%;opacity:0;font-size:16px;-webkit-appearance:none;appearance:none;cursor:pointer}
 
 .banner{display:none;margin-top:8px;padding:10px 14px;border-radius:16px;background:rgba(255,138,76,.14);color:var(--orange);font-size:13px;font-weight:700}
 .banner.on{display:block}
@@ -251,10 +244,6 @@ nav button.on{background:#fff;color:var(--ink)}
     <div class="pvMsg" id="pvMsg">Connexion…</div>
     <div class="vu"><i id="vuCov"></i></div>
   </div>
-  <div class="pvbar" id="pvbar">
-    <div class="seg" id="seg"><button data-m="prog">Programme</button><button data-m="in">Entrée LiveU</button></div>
-    <label class="pvInfo"><span id="pvInfo">3 img/s</span><select id="pvFpsSel" aria-label="Images par seconde du retour"></select></label>
-  </div>
   <button class="pvShow" id="pvShow">▸ Afficher le retour image</button>
   <div class="rate" id="rate">
     <div class="rh"><span class="lbl" id="rLbl">Débit LiveU · entrée</span><span class="rstate" id="rState">En attente</span></div>
@@ -263,10 +252,10 @@ nav button.on{background:#fff;color:var(--ink)}
     <div class="rnote" id="rNote">En attente des données IRLToolkit…</div>
   </div>
   <div class="stats">
-    <div class="st clk"><b id="clock">--:--</b><span><i class="dot" id="dot"></i>Heure</span></div>
     <div class="st"><b id="sKbps">–</b><span>Sortie</span></div>
     <div class="st"><b id="sDrop">–</b><span>Perdues</span></div>
     <div class="st"><b id="sCpu">–</b><span>CPU</span></div>
+    <label class="st pvInfo"><b id="pvInfo">3</b><span>Img/s ▾</span><select id="pvFpsSel" aria-label="Images par seconde du retour"></select></label>
     <button class="eye" id="pvToggle" aria-label="Afficher ou masquer l’image">▣</button>
   </div>
   <div class="banner" id="banner"></div>
@@ -343,10 +332,10 @@ nav button.on{background:#fff;color:var(--ink)}
 /* ================= Réglages ================= */
 const KEY='regie-obs-v2';
 const defaults={host:/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)?location.hostname:'',port:'4455',pass:'',secours:'',entry:'',
-  autoHide:true,pvOn:true,pvMode:'prog',pvQ:'std',pvFps:3,dur:{},names:{}};
+  autoHide:true,pvOn:true,pvQ:'std',pvFps:3,dur:{},names:{}};
 let cfg=JSON.parse(JSON.stringify(defaults));
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('regie-obs-v1')||'{}'))}catch(e){}
-delete cfg.tw;delete cfg.twAudio;delete cfg.entry;cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};cfg.pvOn=true;cfg.pass=String(cfg.pass||'').trim();cfg.host=String(cfg.host||'').trim();
+delete cfg.tw;delete cfg.pvMode;delete cfg.twAudio;delete cfg.entry;cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};cfg.pvOn=true;cfg.pass=String(cfg.pass||'').trim();cfg.host=String(cfg.host||'').trim();
 /* Lien de connexion : #host=…&pass=… (le # n'est jamais envoyé au serveur GitHub) */
 let fromLink=false;
 try{const hs=location.hash.slice(1);if(hs&&hs!==cfg.lastHash){const p=new URLSearchParams(hs);
@@ -618,8 +607,8 @@ async function pvWorker(id){
     const fps=+cfg.pvFps||3,n=pvWorkers(fps);
     if(id>=n){await sleep(400);continue}
     const q=QUAL[cfg.pvQ]||QUAL.std;
-    const src=cfg.pvMode==='in'?entrySource():S.program;
-    if(!src){if(id===0)pvMsg(cfg.pvMode==='in'?'Choisis la source d’entrée (LiveU) dans les réglages ⚙︎':'');await sleep(800);continue}
+    const src=S.program;
+    if(!src){if(id===0)pvMsg('');await sleep(800);continue}
     const t0=performance.now(),my=++pvSeq;
     try{
       const r=await req('GetSourceScreenshot',{sourceName:src,imageFormat:'jpg',imageWidth:pvWidth(q),imageCompressionQuality:q.q});
@@ -634,7 +623,7 @@ async function pvWorker(id){
         while(pvFrames.length&&now-pvFrames[0]>2000){pvFrames.shift();pvBytes.shift()}
         const span=Math.max(.5,(now-pvFrames[0])/1000),got=pvFrames.length>1?(pvFrames.length-1)/span:0;
         const kbs=pvBytes.reduce((a,b)=>a+b,0)/Math.max(span,1)/1024;
-        $('pvInfo').textContent=Math.round(got)+'/'+fps+' img/s';
+        $('pvInfo').textContent=Math.round(got)+'/'+fps;
       }
     }catch(e){if(S.ok&&id===0)pvMsg('Aperçu indisponible ('+e.message+')')}
     await sleep(Math.max(5,n*1000/fps-(performance.now()-t0)));
@@ -647,16 +636,14 @@ function renderPvTag(){
 
 }
 function applyPvOn(){$('hdr').classList.toggle('nopv',!cfg.pvOn);$('pvToggle').classList.toggle('off',!cfg.pvOn)}
-$('seg').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;e.stopPropagation();haptic();
-  cfg.pvMode=b.dataset.m;saveCfg();$('pvImg').removeAttribute('src');pvFrames=[];pvBytes=[];renderPvTag()});
-$('pv').addEventListener('click',()=>{if(!S.ok)return;S.pvPause=!S.pvPause;pvMsg(S.pvPause?'⏸ Aperçu en pause, toucher pour reprendre':'');if(S.pvPause)$('pvInfo').textContent=(cfg.pvFps||3)+' img/s'});
+$('pv').addEventListener('click',()=>{if(!S.ok)return;S.pvPause=!S.pvPause;pvMsg(S.pvPause?'⏸ Aperçu en pause, toucher pour reprendre':'');if(S.pvPause)$('pvInfo').textContent=String(cfg.pvFps||3)});
 /* Menu déroulant des images/s sur l'aperçu */
 $('pvFpsSel').innerHTML=FPS.map(f=>`<option value="${f}">${f} image${f>1?'s':''}/s${f===3?' (conseillé en festival)':f>=25?' (Wi-Fi conseillé)':''}</option>`).join('');
 $('pvFpsSel').value=String(cfg.pvFps||3);
 $('pvFpsSel').addEventListener('click',e=>e.stopPropagation());
 $('pvFpsSel').closest('label').addEventListener('click',e=>e.stopPropagation());
 $('pvFpsSel').addEventListener('change',e=>{haptic();cfg.pvFps=+e.target.value||3;saveCfg();pvFrames=[];pvBytes=[];
-  $('pvInfo').textContent=cfg.pvFps+' img/s';toast('Retour image : '+cfg.pvFps+' images/s');if(S.pvPause){S.pvPause=false;pvMsg('')}});
+  $('pvInfo').textContent=String(cfg.pvFps);toast('Retour image : '+cfg.pvFps+' images/s');if(S.pvPause){S.pvPause=false;pvMsg('')}});
 $('pvToggle').onclick=()=>{haptic();cfg.pvOn=!cfg.pvOn;saveCfg();applyPvOn()};
 $('pvShow').onclick=()=>{haptic();cfg.pvOn=true;saveCfg();applyPvOn()};
 
@@ -727,7 +714,7 @@ function drawRate(){
 }
 
 /* ================= Rendu en-tête ================= */
-function setConn(st){$('dot').className='dot '+st}
+function setConn(st){}
 function banner(t,kind){const b=$('banner');b.textContent=t;b.className='banner'+(t?' on':'')+(kind==='err'?' err':'')}
 function renderLiveBadge(){
   const el=$('live');
@@ -1063,7 +1050,7 @@ $('fSave').onclick=()=>{
   const nh=$('fHost').value.trim(),np=$('fPort').value.trim()||'4455',npw=$('fPass').value.trim();
   const changed=cfg.host!==nh||cfg.port!==np||cfg.pass!==npw;
   if(changed)cfg.manual=true;cfg.host=nh;cfg.port=np;cfg.pass=npw;
-  cfg.autoHide=$('fAuto').checked;cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;$('pvFpsSel').value=String(cfg.pvFps);$('pvInfo').textContent=cfg.pvFps+' img/s';saveCfg();
+  cfg.autoHide=$('fAuto').checked;cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;$('pvFpsSel').value=String(cfg.pvFps);$('pvInfo').textContent=String(cfg.pvFps);saveCfg();
   $('sheet').classList.remove('on');renderPanic();renderPvTag();renderAudio();renderRegie();S.frozen=0;S.lastThumb='';
   if(changed||!S.ok){S.retry=0;connect()}else toast('Réglages enregistrés');
 };
@@ -1088,15 +1075,13 @@ document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()
 }));
 let wl=null;async function wake(){try{if('wakeLock'in navigator&&document.visibilityState==='visible')wl=await navigator.wakeLock.request('screen')}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){wake();if(!S.ok&&!S.manual&&cfg.host){S.retry=0;connect()}else if(S.ok)loadAll()}});
-const clockTxt=()=>new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
 setInterval(()=>{
-  $('clock').textContent=clockTxt();
   if(S.streaming&&!S.reconnecting){S.dur+=1000;renderLiveBadge()}
   silenceTick();renderRate();
 },1000);
 
-$('clock').textContent=clockTxt();
-$('pvInfo').textContent=(cfg.pvFps||3)+' img/s';applyPvOn();renderPvTag();renderRegie();renderAudio();renderStats();renderLiveBadge();wake();
+
+$('pvInfo').textContent=String(cfg.pvFps||3);applyPvOn();renderPvTag();renderRegie();renderAudio();renderStats();renderLiveBadge();wake();
 requestAnimationFrame(meterFrame);pvLoop();frozenLoop();
 
 function showLock(msg){$('lock').classList.add('on');$('lockErr').textContent=msg||'';setTimeout(()=>{try{$('lockIn').focus()}catch(e){}},300);pvMsg('Verrouillé')}
