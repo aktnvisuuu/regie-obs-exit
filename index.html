@@ -187,24 +187,6 @@ input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;hei
 input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--card3)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:#fff;margin-top:-12px;box-shadow:0 2px 8px rgba(0,0,0,.6)}
 
-/* Retour son */
-.gear.on{background:var(--g);color:var(--ink)}
-.ear{display:none;position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 72px);max-width:536px;margin:0 auto;z-index:6;
-  align-items:center;gap:10px;padding:8px;border-radius:22px;background:rgba(24,24,24,.96);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
-  box-shadow:0 8px 30px rgba(0,0,0,.6),inset 0 0 0 1.5px rgba(43,224,127,.4)}
-@media (max-width:560px){.ear{left:12px;right:12px}}
-.ear.on{display:flex;animation:vin .25s ease}
-.earv{width:112px;height:63px;border-radius:14px;overflow:hidden;flex-shrink:0;background:#000;position:relative}
-#twBox{width:400px;height:225px;transform:scale(.28);transform-origin:0 0}
-#twBox iframe{width:400px;height:225px;border:0}
-.eart{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-.eart b{font-size:14px;font-weight:800}
-.eart span{font-size:12px;font-weight:600;color:var(--sub);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.earb{align-self:flex-start;height:28px;padding:0 12px;margin-top:4px;border-radius:999px;background:var(--card3);font-size:12px;font-weight:800}
-.earb.on{background:var(--g);color:var(--ink)}
-.earx{width:36px;height:36px;border-radius:50%;background:var(--card3);font-size:14px;font-weight:800;flex-shrink:0}
-body.earon main{padding-bottom:calc(env(safe-area-inset-bottom) + 190px)}
-body.earon .toast{bottom:calc(env(safe-area-inset-bottom) + 180px)}
 /* Code d'équipe */
 .adv{margin-top:10px}.adv summary{color:var(--sub);font-size:13px;font-weight:700;padding:10px 4px;cursor:pointer}
 .lock{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;visibility:hidden;transition:opacity .35s ease,visibility 0s linear .35s}
@@ -261,7 +243,6 @@ nav button[data-v=musiques].on{background:var(--yel)}
     <div class="logo"><img src="logo.png" alt=""></div>
     <div class="ttl"><b>Régie</b><span>EXIT</span></div>
     <div class="live" id="live">HORS LIGNE</div>
-    <button class="gear" id="ear" aria-label="Retour son">🎧</button>
     <button class="gear" id="gear" aria-label="Réglages">⚙︎</button>
   </div>
   <div class="pv" id="pv">
@@ -295,13 +276,6 @@ nav button[data-v=musiques].on{background:var(--yel)}
   <section class="view on" id="v-regie"></section>
   <section class="view" id="v-son"></section>
 </main>
-
-<!-- Retour son (lecteur Twitch) -->
-<div class="ear" id="earDock">
-  <div class="earv"><div id="twBox"></div></div>
-  <div class="eart"><b>🎧 Retour son</b><span id="earSt">Chargement…</span><button class="earb" id="earQ">Audio seul</button></div>
-  <button class="earx" id="earX" aria-label="Fermer le retour son">✕</button>
-</div>
 
 <footer>
   <nav>
@@ -337,8 +311,6 @@ nav button[data-v=musiques].on{background:var(--yel)}
     <div class="field"><label>Port (ignoré avec ws:// ou wss://)</label><input id="fPort" inputmode="numeric" placeholder="4455"></div>
     <div class="field"><label>Mot de passe WebSocket</label><input id="fPass" type="password" autocapitalize="off" autocorrect="off" placeholder="••••••"></div>
     </details>
-    <div class="field"><label>Chaîne Twitch (retour son 🎧)</label><input id="fTw" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="nom de la chaîne ou lien twitch.tv/…"></div>
-    <div class="field"><label>Source d’entrée (flux du LiveU)</label><select id="fEntry"></select></div>
     <div class="field"><label>Netteté du retour image</label><select id="fQ">
       <option value="eco">Éco : 480 px, léger</option>
       <option value="std">Normal : 960 px, net</option>
@@ -373,11 +345,10 @@ const defaults={host:/^\d+\.\d+\.\d+\.\d+$/.test(location.hostname)?location.hos
   autoHide:true,pvOn:true,pvMode:'prog',pvQ:'std',pvFps:3,dur:{},names:{}};
 let cfg=JSON.parse(JSON.stringify(defaults));
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('regie-obs-v1')||'{}'))}catch(e){}
-cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};cfg.pvOn=true;cfg.pass=String(cfg.pass||'').trim();cfg.host=String(cfg.host||'').trim();
+delete cfg.tw;delete cfg.twAudio;delete cfg.entry;cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};cfg.pvOn=true;cfg.pass=String(cfg.pass||'').trim();cfg.host=String(cfg.host||'').trim();
 /* Lien de connexion : #host=…&pass=… (le # n'est jamais envoyé au serveur GitHub) */
 let fromLink=false;
 try{const hs=location.hash.slice(1);if(hs&&hs!==cfg.lastHash){const p=new URLSearchParams(hs);
-  for(const k of['entry','tw'])if(p.has(k)){cfg[k]=p.get(k).trim();fromLink=true}
   if(fromLink){cfg.lastHash=hs;try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}}
   // ancien lien avec mot de passe : on l'efface de la barre d'adresse
   if(/(^|&)(pass|host)=/.test(location.hash.slice(1)))history.replaceState(null,'',location.pathname+location.search);}catch(e){}
@@ -1074,12 +1045,11 @@ function silenceTick(){
 
 /* ================= Réglages ================= */
 function fillSelects(){
-  $('fEntry').innerHTML='<option value="">Auto (nom avec « LiveU », « SRT », « Ingest »…)</option>'+S.inputs.map(i=>`<option${i.name===cfg.entry?' selected':''}>${esc(i.name)}</option>`).join('');
 }
-function openSettings(){$('fTw').value=cfg.tw||'';$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fQ').value=cfg.pvQ;$('fFps').value=String(cfg.pvFps||3);fillSelects();$('sheet').classList.add('on')}
+function openSettings(){$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fQ').value=cfg.pvQ;$('fFps').value=String(cfg.pvFps||3);fillSelects();$('sheet').classList.add('on')}
 $('gear').onclick=openSettings;
 $('fLink').onclick=async()=>{
-  haptic();const p=new URLSearchParams();if(cfg.tw)p.set('tw',cfg.tw);if(cfg.entry)p.set('entry',cfg.entry);
+  haptic();const p=new URLSearchParams();
   const url=location.origin+location.pathname+(p.toString()?'#'+p.toString():'');
   $('fLinkBox').style.display='block';$('fLinkOut').value=url;
   if(navigator.share){try{await navigator.share({title:'Régie EXIT',text:'Régie EXIT : ouvre le lien et entre le code d’équipe.',url});return}catch(e){if(e&&e.name==='AbortError')return}}
@@ -1092,38 +1062,10 @@ $('fSave').onclick=()=>{
   const nh=$('fHost').value.trim(),np=$('fPort').value.trim()||'4455',npw=$('fPass').value.trim();
   const changed=cfg.host!==nh||cfg.port!==np||cfg.pass!==npw;
   if(changed)cfg.manual=true;cfg.host=nh;cfg.port=np;cfg.pass=npw;
-  cfg.entry=$('fEntry').value;cfg.autoHide=$('fAuto').checked;cfg.tw=$('fTw').value.trim().replace(/^.*twitch\.tv\//i,'').replace(/[/?#].*$/,'').trim();cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;$('pvFpsSel').value=String(cfg.pvFps);$('pvInfo').textContent=cfg.pvFps+' img/s';saveCfg();
+  cfg.autoHide=$('fAuto').checked;cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;$('pvFpsSel').value=String(cfg.pvFps);$('pvInfo').textContent=cfg.pvFps+' img/s';saveCfg();
   $('sheet').classList.remove('on');renderPanic();renderPvTag();renderAudio();renderRegie();S.frozen=0;S.lastThumb='';
   if(changed||!S.ok){S.retry=0;connect()}else toast('Réglages enregistrés');
 };
-
-/* ================= Retour son : lecteur Twitch ================= */
-let TW=null,twLoading=null;
-function loadTw(){
-  if(window.Twitch&&Twitch.Player)return Promise.resolve();if(twLoading)return twLoading;
-  twLoading=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://player.twitch.tv/js/embed/v1.js';s.onload=res;s.onerror=()=>{twLoading=null;rej(new Error('lecteur Twitch injoignable'))};document.head.appendChild(s)});
-  return twLoading;
-}
-function earState(t){$('earSt').textContent=t}
-function earQLabel(){$('earQ').classList.toggle('on',!!cfg.twAudio);$('earQ').textContent=cfg.twAudio?'Audio seul ✓':'Audio seul'}
-async function earOpen(){
-  if(!cfg.tw){toast('Indique d’abord ta chaîne Twitch');openSettings();setTimeout(()=>$('fTw').focus(),300);return}
-  $('earDock').classList.add('on');document.body.classList.add('earon');$('ear').classList.add('on');earQLabel();
-  earState('Connexion à '+cfg.tw+'…');
-  try{await loadTw()}catch(e){earState('Impossible de charger le lecteur Twitch ('+e.message+')');return}
-  if(TW&&TW._ch===cfg.tw){try{TW.setMuted(false);TW.play()}catch(e){}earState('🔊 Touche l’image si le son ne part pas');return}
-  $('twBox').innerHTML='';
-  TW=new Twitch.Player('twBox',{channel:cfg.tw,parent:[location.hostname||'localhost'],width:400,height:225,autoplay:true,muted:false});TW._ch=cfg.tw;
-  TW.addEventListener(Twitch.Player.READY,()=>{earState('Touche l’image pour lancer le son');if(cfg.twAudio)setTimeout(()=>{try{TW.setQuality('audio_only')}catch(e){}},1500)});
-  TW.addEventListener(Twitch.Player.PLAYING,()=>{earState('🔊 En écoute · quelques s de retard');if(cfg.twAudio)try{TW.setQuality('audio_only')}catch(e){}});
-  TW.addEventListener(Twitch.Player.PAUSE,()=>earState('En pause · touche l’image pour relancer'));
-  TW.addEventListener(Twitch.Player.OFFLINE,()=>earState(cfg.tw+' n’est pas en live'));
-  TW.addEventListener(Twitch.Player.ONLINE,()=>earState('Live démarré · touche l’image'));
-}
-function earClose(){if(TW){try{TW.pause()}catch(e){}}$('earDock').classList.remove('on');document.body.classList.remove('earon');$('ear').classList.remove('on')}
-$('ear').onclick=()=>{haptic();$('earDock').classList.contains('on')?earClose():earOpen()};
-$('earX').onclick=()=>{haptic();earClose()};
-$('earQ').onclick=()=>{haptic();cfg.twAudio=!cfg.twAudio;saveCfg();earQLabel();if(TW){try{TW.setQuality(cfg.twAudio?'audio_only':'auto')}catch(e){}}toast(cfg.twAudio?'Audio seul : moins de data':'Vidéo + audio')};
 
 /* ================= Feuilles : glisser vers le bas pour fermer ================= */
 function swipeClose(sheet,panel,close){
