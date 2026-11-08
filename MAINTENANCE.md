@@ -1,6 +1,6 @@
 # Régie EXIT : version de référence (8 nov. 2026, après le live)
 
-Cette version (tag git `reference-8nov`) est **la référence**. Toute nouvelle modif part d'ici.
+Cette version (commit `9a6c97c`) est **la référence**. Toute nouvelle modif part d'ici.
 
 ## Ce que fait l'app
 - Télécommande iPhone (page web ajoutée à l'écran d'accueil) d'un OBS hébergé chez IRLToolkit (irl.run), via obs-websocket v5 (wss://…:4456).
