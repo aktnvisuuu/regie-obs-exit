@@ -91,6 +91,15 @@ header.nopv .pvShow{display:block}
 
 .banner{display:none;margin-top:8px;padding:10px 14px;border-radius:16px;background:rgba(255,138,76,.14);color:var(--orange);font-size:13px;font-weight:700}
 .banner.on{display:block}
+.power{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .35s ease,opacity .3s ease,margin .35s ease;margin-top:0}
+.power.on{grid-template-rows:1fr;opacity:1;margin:14px 0 12px}
+.power .in>p{margin-bottom:2px}
+.power .in{min-height:0;overflow:hidden}
+.powb{display:flex;align-items:center;justify-content:center;gap:10px;height:56px;border-radius:999px;background:var(--g);color:var(--ink);font-size:17px;font-weight:800;text-decoration:none;letter-spacing:-.01em}
+.powb i{font-style:normal;font-size:20px}
+.powb:active{transform:scale(.97)}
+.power p{margin:8px 6px 0;font-size:12.5px;line-height:1.4;color:var(--sub);font-weight:600}
+.power p b{color:var(--txt,#fff)}
 .banner.err{background:rgba(255,68,54,.14);color:var(--red)}
 .alert{display:none;margin-top:8px;padding:12px 14px;border-radius:16px;background:var(--red);color:#fff;font-size:14px;font-weight:800;animation:pulse 1.2s infinite}
 .alert.on{display:block}
@@ -239,6 +248,10 @@ nav button.on{background:#fff;color:var(--ink)}
     <div class="live off" id="live" aria-label="Hors ligne"></div>
     <button class="gear" id="gear" aria-label="Réglages">⚙︎</button>
   </div>
+  <div class="power" id="power"><div class="in">
+    <a class="powb" id="powB" href="https://irl.run" target="_blank" rel="noopener"><i>⏻</i>Allumer le serveur</a>
+    <p id="powT">Le serveur irl.run a l’air éteint. Touche le bouton, fais <b>Start Server</b>, puis reviens ici : la Régie se connecte toute seule (2-3 min).</p>
+  </div></div>
   <div class="pv" id="pv">
     <img id="pvImg" alt="">
     <div class="pvMsg" id="pvMsg">Connexion…</div>
@@ -424,8 +437,8 @@ function connect(){
     if(ev.code===4009){setConn('bad');banner('Mot de passe refusé par OBS. Vérifie-le dans les réglages ⚙︎','err');pvMsg('Mot de passe refusé');return}
     if(S.manual)return;
     setConn('wait');pvMsg('OBS injoignable');
-    banner(was?'Connexion perdue avec OBS. Reconnexion…':'OBS injoignable. Serveur irl.run démarré ? Adresse correcte ?','');
-    const d=Math.min(10000,1500*Math.pow(1.6,S.retry++));setTimeout(()=>{if(!S.ok&&!S.manual&&S.ws===ws)connect()},d);
+    banner(was?'Connexion perdue avec OBS. Reconnexion…':(S.booting?'':'OBS injoignable.'),'');if(!was||S.retry>=3)showPower(true);
+    const d=S.booting?4000:Math.min(10000,1500*Math.pow(1.6,S.retry++));setTimeout(()=>{if(!S.ok&&!S.manual&&S.ws===ws)connect()},d);
   };
 }
 function onMsg(msg){
@@ -437,7 +450,7 @@ function onMsg(msg){
       id.authentication=b64sha(b64sha(cfg.pass+d.authentication.salt)+d.authentication.challenge);
     }
     S.ws.send(JSON.stringify({op:1,d:id}));
-  }else if(msg.op===2){S.ok=true;S.retry=0;S.connT=Date.now();setConn('ok');banner('');pvMsg('');loadAll()}
+  }else if(msg.op===2){S.ok=true;S.retry=0;S.connT=Date.now();setConn('ok');banner('');showPower(false);if(S.booting){S.booting=false;toast('Serveur allumé, Régie connectée ✓')}pvMsg('');loadAll()}
   else if(msg.op===7){const p=S.pending.get(d.requestId);if(p){S.pending.delete(d.requestId);d.requestStatus.result?p.res(d.responseData||{}):p.rej(new Error(d.requestStatus.comment||('Erreur '+d.requestStatus.code)))}}
   else if(msg.op===5)onEvent(d.eventType,d.eventData||{});
 }
@@ -715,6 +728,8 @@ function drawRate(){
 
 /* ================= Rendu en-tête ================= */
 function setConn(st){}
+function showPower(on){$('power').classList.toggle('on',!!on)}
+$('powB').addEventListener('click',()=>{haptic();S.booting=Date.now();$('powT').innerHTML='Démarrage en cours… fais <b>Start Server</b> sur irl.run. La Régie réessaie toute seule toutes les 4 s et se connecte dès que le serveur est prêt.'});
 function banner(t,kind){const b=$('banner');b.textContent=t;b.className='banner'+(t?' on':'')+(kind==='err'?' err':'')}
 function renderLiveBadge(){
   const el=$('live');
