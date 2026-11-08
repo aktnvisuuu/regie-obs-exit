@@ -146,6 +146,22 @@ main{overflow-x:clip;padding:0 16px calc(env(safe-area-inset-bottom) + 92px)}
 .note{color:#6c6c6c;font-size:13px;line-height:1.45;margin:16px 4px 4px}
 
 /* Son */
+/* LUT */
+.lutcam{display:flex;align-items:center;gap:8px;margin:-4px 2px 14px;font-size:13px;font-weight:700;color:var(--sub)}
+.lutcam b{color:var(--g);font-weight:800}
+.lut{position:relative;border-radius:22px;background:var(--card);min-height:112px;padding:10px 10px 12px 12px;display:flex;flex-direction:column;text-align:left;transition:transform .12s,box-shadow .2s;overflow:hidden}
+.lut:active{transform:scale(.96)}
+.lut .sw{height:34px;border-radius:12px;background:linear-gradient(90deg,var(--a),var(--b) 55%,var(--c));box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.lut .n{margin-top:auto;padding-top:10px;font-size:17px;font-weight:800;letter-spacing:-.02em;line-height:1.05;word-break:break-word;padding-right:30px}
+.lut .more{position:absolute;right:8px;bottom:8px;width:30px;height:26px;border-radius:999px;background:rgba(255,255,255,.08);font-size:11px;font-weight:800;letter-spacing:1px}
+.lut.on{background:var(--g);color:var(--ink)}
+.lut.on .more{background:rgba(10,10,10,.12)}
+.lut.on::after{content:"ON AIR";position:absolute;top:16px;right:16px;font-size:10px;font-weight:800;letter-spacing:.05em;background:var(--ink);color:var(--g);padding:3px 8px;border-radius:999px}
+.lut.none .sw{background:repeating-linear-gradient(45deg,#2b2b2b 0 8px,#222 8px 16px)}
+.lutamt{background:var(--card);border-radius:22px;padding:14px 16px 8px;margin-top:12px}
+.lutamt .h{display:flex;justify-content:space-between;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--sub)}
+.lutamt .h b{color:#fff;font-size:15px;letter-spacing:0;font-variant-numeric:tabular-nums}
+.lutamt.off{opacity:.35;pointer-events:none}
 .strip{background:var(--card);border-radius:26px;padding:16px 16px 10px;margin-bottom:10px}
 .strip.muted .mtr,.strip.muted .fd{opacity:.3}
 .sh{display:flex;align-items:flex-start;gap:10px}
@@ -261,12 +277,14 @@ nav .ind::after{content:"";position:absolute;inset:2px 10% auto;height:40%;borde
 <main id="main">
   <section class="view on" id="v-regie"></section>
   <section class="view" id="v-son"></section>
+  <section class="view" id="v-lut"></section>
 </main>
 
 <footer>
   <nav>
     <button class="on" data-v="regie">Scènes</button>
     <button data-v="son">Son</button>
+    <button data-v="lut">LUT</button>
   </nav>
 </footer>
 
@@ -331,6 +349,7 @@ nav .ind::after{content:"";position:absolute;inset:2px 10% auto;height:40%;borde
     12. Onglet Scènes : scènes et sources
     13. Fiche d'une source (•••)
     14. Onglet Son
+    14 bis. Onglet LUT (caméra LiveU uniquement)
     15. Réglages ⚙︎
     16. Feuilles, onglets, gestes
     17. Cycle de vie : mise à jour auto, hors-ligne, veille, démarrage
@@ -438,7 +457,7 @@ function dropSocket(){const ws=S.ws;S.ws=null;if(ws){ws.onmessage=ws.onclose=ws.
 function onClosed(code){
   const was=S.ok;S.ok=false;S.ws=null;
   S.pending.forEach(p=>p.rej(new Error('Connexion fermée')));S.pending.clear();
-  renderLiveBadge();updateAlert();
+  renderLiveBadge();updateAlert();renderLut();
   if(code===4009){banner('Mot de passe refusé par OBS.','err');pvMsg('Mot de passe refusé');return}
   if(S.manual)return;
   pvMsg('OBS injoignable');
@@ -495,6 +514,7 @@ async function loadAll(){
   try{await loadScenes()}catch(e){toast(e.message)}
   try{await loadInputs()}catch(e){}
   try{await loadAssets()}catch(e){}
+  try{await loadLuts()}catch(e){}
   pollStats();
 }
 async function loadScenes(){
@@ -518,7 +538,7 @@ async function loadAssets(){
   }
   let fx=[];try{fx=(await req('GetSourceFilterList',{sourceName:prog})).filters||[]}catch(e){}
   if(prog!==S.program)return;
-  S.containers=cs;S.sceneFx=fx.filter(f=>!f.filterName.startsWith('_'));renderRegie();
+  S.containers=cs;S.sceneFx=fx.filter(f=>!f.filterName.startsWith('_')&&!isLutName(f.filterName));renderRegie();
 }
 async function loadInputs(){
   const r=await req('GetInputList');
@@ -537,7 +557,9 @@ async function loadInputs(){
   renderAudio();
 }
 // l'entrée LiveU = la source dont le nom évoque l'ingest (« Ingest Player », « LiveU », « SRT »…)
-function entrySource(){const f=S.inputs.find(i=>/liveu|srt|irl|rtmp|ingest|entr[ée]e/i.test(i.name));return f?f.name:''}
+function entrySource(){
+  const f=S.inputs.find(i=>/irltk_ingest/i.test(i.kind))||S.inputs.find(i=>/^ingest player$/i.test(i.name))||S.inputs.find(i=>/liveu|srt|irl|rtmp|ingest|entr[ée]e/i.test(i.name));
+  return f?f.name:''}
 const kindOf=n=>{const i=S.inputs.find(x=>x.name===n);return i?i.kind:''};
 
 /* ---------- 6. Événements OBS ---------- */
@@ -562,7 +584,7 @@ function onEvent(t,d){
     case'SceneItemCreated':case'SceneItemRemoved':case'SceneItemListReindexed':
       loadAssets().catch(()=>{});break;
     case'InputNameChanged':case'InputCreated':case'InputRemoved':
-      loadInputs().catch(()=>{});loadAssets().catch(()=>{});break;
+      loadInputs().then(()=>loadLuts()).catch(()=>{});loadAssets().catch(()=>{});break;
     case'InputMuteStateChanged':S.mutes[d.inputName]=d.inputMuted;updateMute(d.inputName);break;
     case'InputVolumeChanged':
       if(S.drag[d.inputName]&&Date.now()-S.drag[d.inputName]<800)break;   // pas d'aller-retour pendant qu'on glisse
@@ -573,12 +595,17 @@ function onEvent(t,d){
         S.lv[x.inputName]=ch;S.lvT[x.inputName]=now;if(Math.max(...ch)>-50)S.heard[x.inputName]=Date.now()}
       break}
     case'SourceFilterEnableStateChanged':
+      if(d.sourceName===LUT.src&&isLutName(d.filterName)){LUT.list.forEach(l=>{if(l.name===d.filterName)l.on=d.filterEnabled});renderLut();break}
       if(d.sourceName===S.program){S.sceneFx.forEach(f=>{if(f.filterName===d.filterName)f.filterEnabled=d.filterEnabled});renderRegie()}
       if(S.sheet&&S.sheet.t.src===d.sourceName&&S.sheet.fx){S.sheet.fx.forEach((f,j)=>{if(f.filterName===d.filterName){f.filterEnabled=d.filterEnabled;const c=document.querySelector('[data-dfx="'+j+'"]');if(c)c.checked=d.filterEnabled}})}
       break;
     case'SourceFilterCreated':case'SourceFilterRemoved':case'SourceFilterNameChanged':
+      if(d.sourceName===LUT.src)loadLuts().catch(()=>{});
       if(d.sourceName===S.program)loadAssets().catch(()=>{});
       if(S.sheet&&S.sheet.t.src===d.sourceName)loadDetailFx();break;
+    case'SourceFilterSettingsChanged':
+      if(d.sourceName===LUT.src&&isLutName(d.filterName)&&d.filterSettings&&typeof d.filterSettings.clut_amount==='number'&&Date.now()-LUT.dragAt>800){LUT.list.forEach(l=>{if(l.name===d.filterName)l.amount=d.filterSettings.clut_amount});renderLut()}
+      break;
     case'MediaInputPlaybackStarted':S.playing[d.inputName]=Date.now();renderRegie();break;
     case'MediaInputActionTriggered':if(/STOP/.test(d.mediaAction||'')){delete S.playing[d.inputName];renderRegie()}break;
     case'MediaInputPlaybackEnded':
@@ -902,7 +929,7 @@ async function applyText(t,val,show){
 async function loadDetailFx(){
   const t=S.sheet&&S.sheet.t;if(!t)return;
   let f=[];try{f=(await req('GetSourceFilterList',{sourceName:t.src})).filters||[]}catch(e){}
-  if(!S.sheet||S.sheet.t!==t)return;f=f.filter(x=>!x.filterName.startsWith('_'));S.sheet.fx=f;
+  if(!S.sheet||S.sheet.t!==t)return;f=f.filter(x=>!x.filterName.startsWith('_')&&!isLutName(x.filterName));S.sheet.fx=f;
   $('dFx').innerHTML=f.length?f.map((x,j)=>`<label class="check">${esc(x.filterName)}<input type="checkbox" switch data-dfx="${j}"${x.filterEnabled?' checked':''}></label>`).join('')
     :'<div class="note" style="margin:4px 2px">Aucun filtre.</div>';
 }
@@ -983,6 +1010,114 @@ function silenceTick(){                               // « ne module plus depui
   });
 }
 
+/* ---------- 14 bis. Onglet LUT ----------
+   Des filtres OBS « Appliquer une LUT » (clut_filter) posés UNIQUEMENT sur la caméra LiveU (entrySource()),
+   nommés « LUT · Nom ». Un seul actif à la fois ; « Aucun » les coupe tous. L'intensité règle clut_amount.
+   Les fichiers .cube/.png doivent être envoyés sur le serveur (Remote OBS → dossier dependencies). */
+const LUT_PFX='LUT · ';
+const isLutName=n=>String(n).startsWith(LUT_PFX);
+const LUT_PACK=['Chaud','Froid','Teal-Orange','Noir-Blanc','Vintage','Punchy','Nuit-Club','Doux'];
+const LUT_SW={"Chaud":["#38322e","#e6a26f","#4594d2"],"Doux":["#3d3d43","#c9a088","#548fc4"],"Froid":["#292f42","#ce9f8b","#388fe2"],"Noir-Blanc":["#202020","#b5b5b5","#858585"],"Nuit-Club":["#26173f","#f5a190","#2a8eff"],"Punchy":["#1d1d27","#f7a96f","#129bff"],"Teal-Orange":["#1a2435","#f1ac71","#2b9bee"],"Vintage":["#413f3c","#d2a685","#5c94bf"]};
+const LUT={src:'',list:[],dir:'',dragAt:0,busy:false};
+async function loadLuts(){
+  LUT.src=entrySource();
+  if(!LUT.src){LUT.list=[];renderLut();return}
+  let f=[];try{f=(await req('GetSourceFilterList',{sourceName:LUT.src})).filters||[]}catch(e){}
+  LUT.list=f.filter(x=>isLutName(x.filterName)).map(x=>{const s=x.filterSettings||{};
+    return{name:x.filterName,label:x.filterName.slice(LUT_PFX.length),on:x.filterEnabled,amount:typeof s.clut_amount==='number'?s.clut_amount:1,file:String(s.image_path||'').split('/').pop()}});
+  renderLut();
+}
+function swatch(label){
+  const k=Object.keys(LUT_SW).find(n=>n.toLowerCase()===label.toLowerCase());if(k)return LUT_SW[k];
+  let x=0;for(const ch of label)x=(x*31+ch.charCodeAt(0))>>>0;const c=PAL[x%PAL.length],d=PAL[(x>>3)%PAL.length];return['#1d1d1d',c,d];
+}
+function renderLut(){
+  const v=$('v-lut');
+  if(!S.ok){v.innerHTML='<div class="empty"><img src="logo.png" alt="">En attente d’OBS…</div>';return}
+  if(!LUT.src){v.innerHTML='<h2 class="big"><b>LUT</b><span>Caméra</span></h2><div class="empty">Caméra LiveU introuvable dans OBS.</div>';return}
+  const act=LUT.list.find(l=>l.on);
+  let h=`<h2 class="big"><b>LUT</b><span>${act?esc(act.label):'Aucun'}</span></h2><div class="lutcam">Appliqué uniquement sur <b>${esc(LUT.src)}</b></div><div class="grid">`;
+  h+=`<button class="lut none${act?'':' on'}" data-lut="-1"><div class="sw"></div><div class="n">Aucun</div></button>`;
+  h+=LUT.list.map((l,i)=>{const s=swatch(l.label);return`<div class="lut${l.on?' on':''}" role="button" data-lut="${i}" style="--a:${s[0]};--b:${s[1]};--c:${s[2]}"><div class="sw"></div><div class="n">${esc(l.label)}</div><button class="more" data-lmore="${i}" aria-label="Options">•••</button></div>`}).join('');
+  h+='</div>';
+  const amt=act?Math.round(act.amount*100):100;
+  h+=`<div class="lutamt${act?'':' off'}"><div class="h"><span>Intensité</span><b id="lutPct">${amt} %</b></div><div class="row2"><input type="range" min="0" max="100" step="1" value="${amt}" id="lutAmt"></div></div>`;
+  h+=`<button class="btn ghost" id="lutAdd" style="margin-top:12px">＋ Ajouter des LUT</button>`;
+  v.innerHTML=h;
+}
+async function pickLut(i){
+  if(LUT.busy)return;const target=i>=0?LUT.list[i]:null;
+  if(target&&target.on)return;if(!target&&!LUT.list.some(l=>l.on))return;
+  haptic();LUT.busy=true;
+  try{
+    if(target)await cmd('SetSourceFilterEnabled',{sourceName:LUT.src,filterName:target.name,filterEnabled:true});   // d'abord le nouveau…
+    for(const l of LUT.list)if(l.on&&l!==target)await cmd('SetSourceFilterEnabled',{sourceName:LUT.src,filterName:l.name,filterEnabled:false}); // …puis on coupe l'ancien
+    LUT.list.forEach(l=>l.on=l===target);renderLut();
+    toast(target?'LUT à l’antenne : '+target.label:'LUT coupé');
+  }catch(e){toast('Erreur : '+e.message)}
+  LUT.busy=false;
+}
+let lutQ=null;
+function sendAmt(l,a){LUT.dragAt=Date.now();l.amount=a;if(lutQ)return;
+  lutQ=setTimeout(()=>{lutQ=null;cmd('SetSourceFilterSettings',{sourceName:LUT.src,filterName:l.name,filterSettings:{clut_amount:l.amount},overlay:true}).catch(()=>{})},80)}
+$('v-lut').addEventListener('input',e=>{if(e.target.id!=='lutAmt')return;const l=LUT.list.find(x=>x.on);if(!l)return;
+  const a=+e.target.value/100;$('lutPct').textContent=Math.round(a*100)+' %';sendAmt(l,a)});
+$('v-lut').addEventListener('click',e=>{
+  if(e.target.closest('#lutAdd')){openLutAdd();return}
+  const m=e.target.closest('[data-lmore]');if(m){openLutMenu(+m.dataset.lmore);return}
+  const t=e.target.closest('[data-lut]');if(t)pickLut(+t.dataset.lut);
+});
+// dossier « dependencies » du serveur : déduit d'une source qui pointe déjà dedans
+async function depDir(){
+  if(LUT.dir)return LUT.dir;
+  for(const i of S.inputs){
+    if(!/ffmpeg|vlc|image|slideshow/.test(i.kind))continue;
+    try{const s=(await req('GetInputSettings',{inputName:i.name})).inputSettings||{};
+      for(const v of Object.values(s)){if(typeof v==='string'&&/\/dependencies\//.test(v)){LUT.dir=v.slice(0,v.indexOf('/dependencies/')+13);return LUT.dir}}}catch(e){}
+  }
+  return LUT.dir='/home/obsuser/dependencies';
+}
+async function openLutAdd(){
+  haptic();S.sheet={t:{c:'',id:-1,src:'__lut__'}};
+  const have=new Set(LUT.list.map(l=>l.label.toLowerCase()));
+  const missing=LUT_PACK.filter(n=>!have.has(n.toLowerCase()));
+  $('dPanel').innerHTML=`<div class="grab"></div><h3>Ajouter des LUT</h3>
+    <div class="sub">Sur ${esc(LUT.src)} uniquement</div>
+    ${missing.length?`<button class="btn" id="lutPack">＋ Pack EXIT (${missing.length} looks)</button>`:''}
+    <h4>Mes propres LUT</h4>
+    <div class="field"><label>Noms des fichiers envoyés sur le serveur, un par ligne</label><textarea id="lutFiles" rows="4" placeholder="MonLook.cube"></textarea></div>
+    <div class="sub" id="lutDir">Dossier : …</div>
+    <button class="btn" id="lutGo">Ajouter</button>
+    <div class="note" style="margin:12px 4px 0">À faire de préférence hors live : à l’ajout, chaque LUT s’allume une fraction de seconde avant d’être coupé.</div>
+    <button class="btn ghost" id="dClose">Fermer</button>`;
+  $('detail').classList.add('on');$('dPanel').scrollTop=0;$('dClose').onclick=closeDetail;
+  depDir().then(d=>{const el=$('lutDir');if(el)el.textContent='Dossier : '+d}).catch(()=>{});
+  if($('lutPack'))$('lutPack').onclick=()=>addLuts(missing.map(n=>'EXIT-'+n+'.cube'));
+  $('lutGo').onclick=()=>{const files=$('lutFiles').value.split(/\n|,/).map(s=>s.trim().split('/').pop()).filter(Boolean);if(files.length)addLuts(files)};
+}
+async function addLuts(files){
+  haptic();const dir=await depDir();let n=0;
+  for(const f of files){
+    const file=/\.(cube|png)$/i.test(f)?f:f+'.cube';
+    const label=file.replace(/\.(cube|png)$/i,'').replace(/^EXIT-/,'').trim();
+    const name=LUT_PFX+label;if(LUT.list.some(l=>l.name===name))continue;
+    try{
+      await cmd('CreateSourceFilter',{sourceName:LUT.src,filterName:name,filterKind:'clut_filter',filterSettings:{image_path:dir+'/'+file,clut_amount:1}});
+      await cmd('SetSourceFilterEnabled',{sourceName:LUT.src,filterName:name,filterEnabled:false});   // créé allumé par OBS : on coupe tout de suite
+      n++;
+    }catch(e){toast('Erreur sur '+file+' : '+e.message)}
+  }
+  closeDetail();await loadLuts();toast(n?n+' LUT ajouté'+(n>1?'s':''):'Rien de nouveau');
+}
+function openLutMenu(i){
+  const l=LUT.list[i];if(!l)return;haptic();S.sheet={t:{c:'',id:-1,src:'__lut__'}};
+  $('dPanel').innerHTML=`<div class="grab"></div><h3>${esc(l.label)}</h3><div class="sub">Fichier : ${esc(l.file||'?')}</div>
+    <div class="note" style="margin:12px 4px 0">Si le LUT ne change rien à l’image, le fichier n’est sans doute pas sur le serveur (Remote OBS → dependencies), ou son nom est différent.</div>
+    <button class="btn red" id="lutDel">Supprimer ce LUT</button><button class="btn ghost" id="dClose">Fermer</button>`;
+  $('detail').classList.add('on');$('dClose').onclick=closeDetail;
+  $('lutDel').onclick=async()=>{haptic();try{await cmd('RemoveSourceFilter',{sourceName:LUT.src,filterName:l.name});closeDetail();await loadLuts();toast('LUT supprimé')}catch(e){toast('Erreur : '+e.message)}};
+}
+
 /* ---------- 15. Réglages ⚙︎ ---------- */
 function openSettings(){$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fBuzz').checked=cfg.buzz;$('fQ').value=cfg.pvQ;$('sheet').classList.add('on')}
 const closeSettings=()=>$('sheet').classList.remove('on');
@@ -1049,7 +1184,7 @@ NAVB.forEach(b=>b.addEventListener('click',()=>{
 
 /* ---------- 17. Cycle de vie ---------- */
 // mise à jour auto : si une version plus récente est en ligne, on recharge (contourne le cache iOS)
-const BUILD='1794139299';let updChk=0;
+const BUILD='1794150214';let updChk=0;
 async function checkUpdate(){
   if(BUILD.startsWith('__')||location.protocol==='file:'||Date.now()-updChk<20000)return;updChk=Date.now();
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const m=(await r.text()).match(/const BUILD='(\d+)'/);
@@ -1081,7 +1216,7 @@ $('lockBtn').onclick=()=>{const v=$('lockIn').value;if(!v.trim())return;$('lockB
 $('lockIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('lockBtn').click()});
 
 // démarrage
-renderPvInfo();applyPvOn();renderRegie();renderAudio();renderStats();renderLiveBadge();wake();
+renderPvInfo();applyPvOn();renderRegie();renderAudio();renderLut();renderStats();renderLiveBadge();wake();
 requestAnimationFrame(meterFrame);for(let i=0;i<4;i++)pvWorker(i);frozenLoop();
 (async()=>{
   // code retenu : on redéchiffre à chaque ouverture, pour suivre un éventuel nouveau mot de passe OBS

@@ -9,7 +9,7 @@ async def main():
     pg=await c.new_page();e=[];pg.on('pageerror',lambda x:e.append(str(x)))
     await pg.goto('file://'+__import__('os').path.abspath('index.html')+'');await pg.wait_for_timeout(3000)
     nav=await pg.evaluate("[...document.querySelectorAll('nav button')].map(b=>b.textContent)")
-    ok(nav==['Scènes','Son'],'Onglets : '+str(nav))
+    ok(nav==['Scènes','Son','LUT'],'Onglets : '+str(nav))
     txt=await pg.evaluate("document.getElementById('v-regie').innerText")
     ok('Tropical' not in txt and 'Lieux' not in txt,'Pas de musiques/lieux dans Scènes')
     ok(await pg.locator('#v-regie .tile').count()>0,'Sources de la scène toujours là')
