@@ -37,8 +37,11 @@ header{padding:calc(env(safe-area-inset-top) + 6px) 16px 4px;background:var(--bg
 .ttl b{display:block;font-weight:800}
 .ttl span{display:block;color:var(--g)}
 .live{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:var(--card2);font-weight:800;font-size:12px;letter-spacing:.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
-.live.on{background:var(--red)}
-.live.on::before{content:"";width:7px;height:7px;border-radius:50%;background:#fff;animation:blink 1.4s infinite}
+.live{transition:background .3s ease,width .3s ease}
+.live.on{background:var(--g);color:var(--ink)}
+.live.on::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ink);animation:blink 1.4s infinite}
+.live.off{width:40px;height:40px;padding:0;justify-content:center;background:var(--red);font-size:0;box-shadow:0 0 0 4px rgba(255,69,58,.18)}
+.live.off::before{content:"";width:12px;height:12px;border-radius:50%;background:#fff}
 .live.reco{background:var(--orange);color:var(--ink)}
 @keyframes blink{50%{opacity:.3}}
 .gear{width:40px;height:40px;border-radius:50%;background:var(--card2);display:grid;place-items:center;font-size:18px;flex-shrink:0}
@@ -240,7 +243,7 @@ nav button.on{background:#fff;color:var(--ink)}
   <div class="brand">
     <div class="logo"><img src="logo.png" alt=""></div>
     <div class="ttl"><b>Régie</b><span>EXIT</span></div>
-    <div class="live" id="live">HORS LIGNE</div>
+    <div class="live off" id="live" aria-label="Hors ligne"></div>
     <button class="gear" id="gear" aria-label="Réglages">⚙︎</button>
   </div>
   <div class="pv" id="pv">
@@ -728,10 +731,10 @@ function setConn(st){$('dot').className='dot '+st}
 function banner(t,kind){const b=$('banner');b.textContent=t;b.className='banner'+(t?' on':'')+(kind==='err'?' err':'')}
 function renderLiveBadge(){
   const el=$('live');
-  if(!S.ok){el.className='live';el.textContent='HORS LIGNE';return}
+  if(!S.ok){el.className='live off';el.textContent='';el.setAttribute('aria-label','Hors ligne');return}
   if(S.reconnecting){el.className='live reco';el.textContent='RECONNEXION';return}
   if(S.streaming){el.className='live on';el.textContent='LIVE '+fmtDur(S.dur);return}
-  el.className='live';el.textContent='PAS EN LIVE';
+  el.className='live off';el.textContent='';el.setAttribute('aria-label','Pas en live');
 }
 const kbpsClass=k=>k==null?'':k>=4000?'g':k>=2500?'y':k>=1000?'o':'r';
 function renderStats(){
