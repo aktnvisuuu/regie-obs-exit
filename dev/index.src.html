@@ -149,15 +149,13 @@ main{overflow-x:clip;padding:0 16px calc(env(safe-area-inset-bottom) + 92px)}
 /* LUT */
 .lutcam{display:flex;align-items:center;gap:8px;margin:-4px 2px 14px;font-size:13px;font-weight:700;color:var(--sub)}
 .lutcam b{color:var(--g);font-weight:800}
-.lut{position:relative;border-radius:22px;background:var(--card);min-height:112px;padding:10px 10px 12px 12px;display:flex;flex-direction:column;text-align:left;transition:transform .12s,box-shadow .2s;overflow:hidden}
+.lut{position:relative;border-radius:22px;background:var(--card);min-height:84px;padding:10px 10px 12px 12px;display:flex;flex-direction:column;text-align:left;transition:transform .12s,box-shadow .2s;overflow:hidden}
 .lut:active{transform:scale(.96)}
-.lut .sw{height:34px;border-radius:12px;background:linear-gradient(90deg,var(--a),var(--b) 55%,var(--c));box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
 .lut .n{margin-top:auto;padding-top:10px;font-size:17px;font-weight:800;letter-spacing:-.02em;line-height:1.05;word-break:break-word;padding-right:30px}
 .lut .more{position:absolute;right:8px;bottom:8px;width:30px;height:26px;border-radius:999px;background:rgba(255,255,255,.08);font-size:11px;font-weight:800;letter-spacing:1px}
 .lut.on{background:var(--g);color:var(--ink)}
 .lut.on .more{background:rgba(10,10,10,.12)}
 .lut.on::after{content:"ON AIR";position:absolute;top:16px;right:16px;font-size:10px;font-weight:800;letter-spacing:.05em;background:var(--ink);color:var(--g);padding:3px 8px;border-radius:999px}
-.lut.none .sw{background:repeating-linear-gradient(45deg,#2b2b2b 0 8px,#222 8px 16px)}
 .lutamt{background:var(--card);border-radius:22px;padding:14px 16px 8px;margin-top:12px}
 .lutamt .h{display:flex;justify-content:space-between;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--sub)}
 .lutamt .h b{color:#fff;font-size:15px;letter-spacing:0;font-variant-numeric:tabular-nums}
@@ -1035,7 +1033,6 @@ const LUT_PACKS=[
 ];
 const lutLabel=file=>file.replace(/\.(cube|png)$/i,'').replace(/[-_]+/g,' ').trim();
 const lutKey=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
-const LUT_SW={"Conversion 709":["#3f3f3b","#d18459","#3e83d8"],"Green Eyes":["#191d25","#be6f4d","#126197"],"Ice Blue":["#171d2a","#bc6c4b","#0b6c84"],"Neutral":["#1c1c2a","#bd6a4b","#0d6190"],"Tungsten":["#1a1c25","#c86b4f","#0c658c"],"Utopia":["#191c27","#bd613c","#0b698d"],"Exterieur 01":["#0b1115","#692013","#031650"],"Exterieur 02":["#030a0e","#46120b","#020e3d"],"Exterieur 03":["#0d1417","#7e2416","#041660"],"Exterieur 04":["#050b0f","#3c0f0a","#020d34"],"Filmkid16":["#283646","#db842e","#005da7"]};
 const LUT={src:'',list:[],dir:'',dragAt:0,busy:false};
 async function loadLuts(){
   LUT.src=entrySource();
@@ -1046,18 +1043,14 @@ async function loadLuts(){
   const on=LUT.list.filter(l=>l.on);if(on.length>1)oneLut(on[on.length-1].name);
   renderLut();
 }
-function swatch(label){
-  const k=Object.keys(LUT_SW).find(n=>lutKey(n)===lutKey(label));if(k)return LUT_SW[k];
-  let x=0;for(const ch of label)x=(x*31+ch.charCodeAt(0))>>>0;const c=PAL[x%PAL.length],d=PAL[(x>>3)%PAL.length];return['#1d1d1d',c,d];
-}
 function renderLut(){
   const v=$('v-lut');
   if(!S.ok){v.innerHTML='<div class="empty"><img src="logo.png" alt="">En attente d’OBS…</div>';return}
   if(!LUT.src){v.innerHTML='<h2 class="big"><b>LUT</b><span>Caméra</span></h2><div class="empty">Caméra LiveU introuvable dans OBS.</div>';return}
   const act=LUT.list.find(l=>l.on);
   let h=`<h2 class="big"><b>LUT</b><span>${act?esc(act.label):'Aucun'}</span></h2><div class="lutcam">Appliqué uniquement sur <b>${esc(LUT.src)}</b></div><div class="grid">`;
-  h+=`<button class="lut none${act?'':' on'}" data-lut="-1"><div class="sw"></div><div class="n">Aucun</div></button>`;
-  h+=LUT.list.map((l,i)=>{const s=swatch(l.label);return`<div class="lut${l.on?' on':''}" role="button" data-lut="${i}" style="--a:${s[0]};--b:${s[1]};--c:${s[2]}"><div class="sw"></div><div class="n">${esc(l.label)}</div><button class="more" data-lmore="${i}" aria-label="Options">•••</button></div>`}).join('');
+  h+=`<button class="lut none${act?'':' on'}" data-lut="-1"><div class="n">Aucun</div></button>`;
+  h+=LUT.list.map((l,i)=>`<div class="lut${l.on?' on':''}" role="button" data-lut="${i}"><div class="n">${esc(l.label)}</div><button class="more" data-lmore="${i}" aria-label="Options">•••</button></div>`).join('');
   h+='</div>';
   const amt=act?Math.round(act.amount*100):100;
   h+=`<div class="lutamt${act?'':' off'}"><div class="h"><span>Intensité</span><b id="lutPct">${amt} %</b></div><div class="row2"><input type="range" min="0" max="100" step="1" value="${amt}" id="lutAmt"></div></div>`;
