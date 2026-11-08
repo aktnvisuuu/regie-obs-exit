@@ -1018,8 +1018,8 @@ const LUT_PFX='LUT · ';
 const isLutName=n=>String(n).startsWith(LUT_PFX);
 // packs proposés en un tap (les fichiers doivent être sur le serveur avec exactement ces noms)
 const LUT_PACKS=[
-  {t:'Pack EXIT',files:['EXIT-Chaud','EXIT-Froid','EXIT-Teal-Orange','EXIT-Noir-Blanc','EXIT-Vintage','EXIT-Punchy','EXIT-Nuit-Club','EXIT-Doux']},
-  {t:'Pack Arthur',sub:'ARRI · Extérieur · Filmkid',files:['Neutral','Tungsten','Ice-Blue','Green-Eyes','Utopia','Exterieur-01','Exterieur-02','Exterieur-03','Exterieur-04','Filmkid16']},
+  {t:'Tous les LUT',files:['EXIT-Chaud','EXIT-Froid','EXIT-Teal-Orange','EXIT-Noir-Blanc','EXIT-Vintage','EXIT-Punchy','EXIT-Nuit-Club','EXIT-Doux',
+    'Neutral','Tungsten','Ice-Blue','Green-Eyes','Utopia','Exterieur-01','Exterieur-02','Exterieur-03','Exterieur-04','Filmkid16']},
 ];
 const lutLabel=file=>file.replace(/\.(cube|png)$/i,'').replace(/^EXIT-/,'').replace(/[-_]+/g,' ').trim();
 const lutKey=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
@@ -1190,7 +1190,7 @@ NAVB.forEach(b=>b.addEventListener('click',()=>{
 
 /* ---------- 17. Cycle de vie ---------- */
 // mise à jour auto : si une version plus récente est en ligne, on recharge (contourne le cache iOS)
-const BUILD='1794151000';let updChk=0;
+const BUILD='1794151234';let updChk=0;
 async function checkUpdate(){
   if(BUILD.startsWith('__')||location.protocol==='file:'||Date.now()-updChk<20000)return;updChk=Date.now();
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const m=(await r.text()).match(/const BUILD='(\d+)'/);
