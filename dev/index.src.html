@@ -607,7 +607,8 @@ function onEvent(t,d){
         S.lv[x.inputName]=ch;S.lvT[x.inputName]=now;if(Math.max(...ch)>-50)S.heard[x.inputName]=Date.now()}
       break}
     case'SourceFilterEnableStateChanged':
-      if(d.sourceName===LUT.src&&isLutName(d.filterName)){LUT.list.forEach(l=>{if(l.name===d.filterName)l.on=d.filterEnabled});renderLut();break}
+      if(d.sourceName===LUT.src&&isLutName(d.filterName)){LUT.list.forEach(l=>{if(l.name===d.filterName)l.on=d.filterEnabled});
+        if(d.filterEnabled)oneLut(d.filterName);renderLut();break}
       if(d.sourceName===S.program){S.sceneFx.forEach(f=>{if(f.filterName===d.filterName)f.filterEnabled=d.filterEnabled});renderRegie()}
       if(S.sheet&&S.sheet.t.src===d.sourceName&&S.sheet.fx){S.sheet.fx.forEach((f,j)=>{if(f.filterName===d.filterName){f.filterEnabled=d.filterEnabled;const c=document.querySelector('[data-dfx="'+j+'"]');if(c)c.checked=d.filterEnabled}})}
       break;
@@ -1042,6 +1043,7 @@ async function loadLuts(){
   let f=[];try{f=(await req('GetSourceFilterList',{sourceName:LUT.src})).filters||[]}catch(e){}
   LUT.list=f.filter(x=>isLutName(x.filterName)).map(x=>{const s=x.filterSettings||{};
     return{name:x.filterName,label:x.filterName.slice(LUT_PFX.length),on:x.filterEnabled,amount:typeof s.clut_amount==='number'?s.clut_amount:1,file:String(s.image_path||'').split('/').pop()}});
+  const on=LUT.list.filter(l=>l.on);if(on.length>1)oneLut(on[on.length-1].name);
   renderLut();
 }
 function swatch(label){
@@ -1062,15 +1064,23 @@ function renderLut(){
   h+=`<button class="btn ghost" id="lutAdd" style="margin-top:12px">＋ Ajouter des LUT</button>`;
   v.innerHTML=h;
 }
+// garde-fou : un seul LUT allumé à la fois, quoi qu'il arrive (celui qui vient d'être allumé gagne)
+function oneLut(keep){
+  const extra=LUT.list.filter(l=>l.on&&l.name!==keep);if(!extra.length)return;
+  extra.forEach(l=>l.on=false);
+  reqBatch(extra.map(l=>['SetSourceFilterEnabled',{sourceName:LUT.src,filterName:l.name,filterEnabled:false}]))
+    .catch(()=>extra.forEach(l=>req('SetSourceFilterEnabled',{sourceName:LUT.src,filterName:l.name,filterEnabled:false}).catch(()=>{})));
+}
 async function pickLut(i){
   if(LUT.busy)return;const target=i>=0?LUT.list[i]:null;
   if(target&&target.on)return;if(!target&&!LUT.list.some(l=>l.on))return;
   haptic();LUT.busy=true;
   try{
     // changement instantané, sans fondu : allumer le nouveau et couper l'ancien partent dans UN seul lot
+    // on coupe TOUS les autres d'abord, puis on allume le nouveau : jamais deux LUT l'un sur l'autre
     const ops=[];
+    for(const l of LUT.list)if(l!==target)ops.push(['SetSourceFilterEnabled',{sourceName:LUT.src,filterName:l.name,filterEnabled:false}]);
     if(target)ops.push(['SetSourceFilterEnabled',{sourceName:LUT.src,filterName:target.name,filterEnabled:true}]);
-    for(const l of LUT.list)if(l.on&&l!==target)ops.push(['SetSourceFilterEnabled',{sourceName:LUT.src,filterName:l.name,filterEnabled:false}]);
     S.cmdAt=Date.now();
     try{const rs=await reqBatch(ops);if(rs.some(x=>!x.requestStatus||!x.requestStatus.result))throw new Error('refusé')}
     catch(e){for(const [t,d] of ops)await cmd(t,d)}             // secours : une par une

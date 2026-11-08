@@ -35,6 +35,15 @@ async def main():
     await pg.evaluate("const s=document.getElementById('lutAmt');s.value=40;s.dispatchEvent(new Event('input',{bubbles:true}))");await pg.wait_for_timeout(400)
     ok(abs(await pg.evaluate("window.__flt['Ingest Player|LUT · Green Eyes'].clut_amount")-0.4)<1e-6,'Intensité 40 % envoyée à OBS')
     await pg.screenshot(path='t22b.png')
+    # quelqu'un allume un 2e LUT directement dans OBS → la Régie coupe l'autre toute seule
+    await pg.evaluate("window.__ws.send(JSON.stringify({op:6,d:{requestType:'SetSourceFilterEnabled',requestId:'zz',requestData:{sourceName:'Ingest Player',filterName:'LUT · Neutral',filterEnabled:true}}}))");await pg.wait_for_timeout(1500)
+    on=[f['filterName'] for f in await pg.evaluate("(async()=>(await req('GetSourceFilterList',{sourceName:'Ingest Player'})).filters.filter(f=>f.filterEnabled))()")]
+    ok(on==['LUT · Neutral'],'Un 2e LUT allumé ailleurs → l’ancien est coupé, jamais deux à la fois ('+', '.join(on)+')')
+    for k in range(5):
+      await pg.click('#v-lut .lut:has-text("Tungsten")' if k%2 else '#v-lut .lut:has-text("Utopia")')
+    await pg.wait_for_timeout(1500)
+    on=[f['filterName'] for f in await pg.evaluate("(async()=>(await req('GetSourceFilterList',{sourceName:'Ingest Player'})).filters.filter(f=>f.filterEnabled))()")]
+    ok(len(on)==1,'Taps rapides en rafale → toujours un seul LUT ('+', '.join(on)+')')
     await pg.click('#v-lut .lut.none');await pg.wait_for_timeout(600)
     ok(await pg.evaluate("LUT.list.every(l=>!l.on)"),'« Aucun » → tous coupés')
     # pas de LUT dans les effets des autres menus
