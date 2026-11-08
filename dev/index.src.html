@@ -480,6 +480,8 @@ function onMsg(msg){
     S.ok=true;S.retry=0;S.connT=Date.now();banner('');showPower(false);pvMsg('');
     if(S.booting){S.booting=0;toast('Serveur allumé, Régie connectée ✓')}
     loadAll();
+  }else if(msg.op===9){                             // réponse à un lot de requêtes
+    const p=S.pending.get(d.requestId);if(!p)return;S.pending.delete(d.requestId);clearTimeout(p.t);p.res(d.results||[]);
   }else if(msg.op===7){                             // réponse à une requête
     const p=S.pending.get(d.requestId);if(!p)return;S.pending.delete(d.requestId);clearTimeout(p.t);
     d.requestStatus.result?p.res(d.responseData||{}):p.rej(new Error(d.requestStatus.comment||('Erreur '+d.requestStatus.code)));
@@ -492,6 +494,16 @@ function req(type,data,timeout){
     const t=setTimeout(()=>{if(S.pending.delete(id))rej(new Error('Délai dépassé'))},timeout||8000);
     S.pending.set(id,{res,rej,t});
     try{S.ws.send(JSON.stringify({op:6,d:{requestType:type,requestId:id,requestData:data||{}}}))}catch(e){S.pending.delete(id);clearTimeout(t);rej(e)}
+  });
+}
+// lot de requêtes exécutées d'un coup par OBS, dans la même image (ex. changer de LUT sans image intermédiaire)
+function reqBatch(list,timeout){
+  return new Promise((res,rej)=>{
+    if(!S.ok||!S.ws||S.ws.readyState>1)return rej(new Error('Non connecté'));
+    const id='b'+(++S.reqId);
+    const t=setTimeout(()=>{if(S.pending.delete(id))rej(new Error('Délai dépassé'))},timeout||8000);
+    S.pending.set(id,{res,rej,t});
+    try{S.ws.send(JSON.stringify({op:8,d:{requestId:id,haltOnFailure:false,executionType:0,requests:list.map(([t,d])=>({requestType:t,requestData:d}))}}))}catch(e){S.pending.delete(id);clearTimeout(t);rej(e)}
   });
 }
 // commande déclenchée par un doigt : prioritaire sur le retour image
@@ -1055,8 +1067,13 @@ async function pickLut(i){
   if(target&&target.on)return;if(!target&&!LUT.list.some(l=>l.on))return;
   haptic();LUT.busy=true;
   try{
-    if(target)await cmd('SetSourceFilterEnabled',{sourceName:LUT.src,filterName:target.name,filterEnabled:true});   // d'abord le nouveau…
-    for(const l of LUT.list)if(l.on&&l!==target)await cmd('SetSourceFilterEnabled',{sourceName:LUT.src,filterName:l.name,filterEnabled:false}); // …puis on coupe l'ancien
+    // changement instantané, sans fondu : allumer le nouveau et couper l'ancien partent dans UN seul lot
+    const ops=[];
+    if(target)ops.push(['SetSourceFilterEnabled',{sourceName:LUT.src,filterName:target.name,filterEnabled:true}]);
+    for(const l of LUT.list)if(l.on&&l!==target)ops.push(['SetSourceFilterEnabled',{sourceName:LUT.src,filterName:l.name,filterEnabled:false}]);
+    S.cmdAt=Date.now();
+    try{const rs=await reqBatch(ops);if(rs.some(x=>!x.requestStatus||!x.requestStatus.result))throw new Error('refusé')}
+    catch(e){for(const [t,d] of ops)await cmd(t,d)}             // secours : une par une
     LUT.list.forEach(l=>l.on=l===target);renderLut();
     toast(target?'LUT à l’antenne : '+target.label:'LUT coupé');
   }catch(e){toast('Erreur : '+e.message)}
