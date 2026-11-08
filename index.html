@@ -198,6 +198,18 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;heigh
 .earx{width:36px;height:36px;border-radius:50%;background:var(--card3);font-size:14px;font-weight:800;flex-shrink:0}
 body.earon main{padding-bottom:calc(env(safe-area-inset-bottom) + 190px)}
 body.earon .toast{bottom:calc(env(safe-area-inset-bottom) + 180px)}
+/* Code d'équipe */
+.adv{margin-top:10px}.adv summary{color:var(--sub);font-size:13px;font-weight:700;padding:10px 4px;cursor:pointer}
+.lock{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
+.lock.on{display:flex}
+.lockin{width:100%;max-width:360px;display:flex;flex-direction:column;align-items:flex-start}
+.locktxt{color:var(--sub);font-size:15px;font-weight:600;line-height:1.45;margin:18px 0 18px}
+#lockIn{width:100%;height:58px;border-radius:18px;border:0;background:var(--card2);color:#fff;font-size:20px;font-weight:700;padding:0 20px;outline:none;box-shadow:inset 0 0 0 1.5px var(--card3)}
+#lockIn:focus{box-shadow:inset 0 0 0 2px var(--g)}
+.lock .btn{margin-top:12px}
+.lockerr{margin-top:12px;color:var(--red);font-weight:700;font-size:14px;min-height:20px}
+.lock.shake .lockin{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 /* ---------- Pied ---------- */
 footer{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;z-index:5;padding:22px 16px calc(env(safe-area-inset-bottom) + 6px);background:linear-gradient(to top,var(--bg) 55%,rgba(10,10,10,0));pointer-events:none}
 footer nav{pointer-events:auto}
@@ -303,18 +315,33 @@ nav button[data-v=musiques].on{background:var(--yel)}
   </nav>
 </footer>
 
+<!-- Écran du code d'équipe -->
+<div class="lock" id="lock">
+  <div class="lockin">
+    <div class="logo" style="width:76px;height:76px;border-radius:22px"><img src="logo.png" alt=""></div>
+    <div class="ttl" style="font-size:40px;margin-top:16px"><b>Régie</b><span>EXIT</span></div>
+    <p class="locktxt">Entre le code d’équipe pour accéder à la régie. Il ne sera plus demandé sur ce téléphone.</p>
+    <input id="lockIn" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="Code d’équipe" enterkeyhint="go">
+    <button class="btn" id="lockBtn">Entrer</button>
+    <div class="lockerr" id="lockErr"></div>
+  </div>
+</div>
+
 <!-- Réglages -->
 <div class="sheet" id="sheet">
   <div class="panel">
     <div class="grab"></div>
     <h3>Réglages</h3>
     <button class="btn" id="fLink" style="margin-top:12px">📤 Partager l’accès à la Régie</button>
-    <div class="note" style="margin:8px 4px 0">Envoie ce lien à ton équipe : en l’ouvrant, la Régie est connectée directement, sans rien taper. Il contient le mot de passe OBS : ne l’envoie qu’aux gens de confiance.</div>
+    <div class="note" style="margin:8px 4px 0">Envoie ce lien à ton équipe, puis donne-leur le code d’équipe de vive voix ou à part. Le lien ne contient aucun mot de passe.</div>
     <div class="field" id="fLinkBox" style="display:none"><label>Lien d’accès</label><input id="fLinkOut" readonly></div>
     <div class="sub" style="margin-top:14px">Connexion à OBS (irl.run → Settings → System). · Version du 8 nov.</div>
+    <button class="btn ghost" id="fLock">🔒 Verrouiller ce téléphone (redemander le code)</button>
+    <details class="adv"><summary>Réglage manuel de la connexion (avancé)</summary>
     <div class="field"><label>Adresse OBS (IP, domaine ou wss://…)</label><input id="fHost" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="wss://…irl.run:4456"></div>
     <div class="field"><label>Port (ignoré avec ws:// ou wss://)</label><input id="fPort" inputmode="numeric" placeholder="4455"></div>
     <div class="field"><label>Mot de passe WebSocket</label><input id="fPass" type="password" autocapitalize="off" autocorrect="off" placeholder="••••••"></div>
+    </details>
     <div class="field"><label>Chaîne Twitch (retour son 🎧)</label><input id="fTw" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="nom de la chaîne ou lien twitch.tv/…"></div>
     <div class="field"><label>Source d’entrée (flux du LiveU)</label><select id="fEntry"></select></div>
     <div class="field"><label>Netteté du retour image</label><select id="fQ">
@@ -355,8 +382,22 @@ cfg.dur=cfg.dur||{};cfg.names=cfg.names||{};cfg.pvOn=true;cfg.pass=String(cfg.pa
 /* Lien de connexion : #host=…&pass=… (le # n'est jamais envoyé au serveur GitHub) */
 let fromLink=false;
 try{const hs=location.hash.slice(1);if(hs&&hs!==cfg.lastHash){const p=new URLSearchParams(hs);
-  for(const k of['host','pass','port','entry','tw'])if(p.has(k)){cfg[k]=p.get(k).trim();fromLink=true}
-  if(fromLink){cfg.lastHash=hs;try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}}}catch(e){}
+  for(const k of['entry','tw'])if(p.has(k)){cfg[k]=p.get(k).trim();fromLink=true}
+  if(fromLink){cfg.lastHash=hs;try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}}
+  // ancien lien avec mot de passe : on l'efface de la barre d'adresse
+  if(/(^|&)(pass|host)=/.test(location.hash.slice(1)))history.replaceState(null,'',location.pathname+location.search);}catch(e){}
+/* ================= Code d'équipe =================
+   L'adresse et le mot de passe OBS sont chiffrés ici (AES-GCM, clé dérivée du code par PBKDF2).
+   Sans le code, le site ne contient rien d'exploitable directement. */
+const LOCK={"v":1,"s":"HxDNqQzUbkD5Mtw3PfgMuQ==","i":600000,"iv":"6jjDY41ZoMOi8+lq","ct":"5ejBQt9MLHYaae/TzjKgi49zSoTe1x0TJ+IZZw1Lt7l4wNAsqAO2ewRifcEjOloPycgcQ1pCwUynynjLcgfFGMaxpowcgj2fPImcry3zVqP5V8j3Y4B42yQPEpwnBy7D/5xfmGVRt2m4KYC8n6T5F7p0slzsrHk="};
+const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function unlock(code){
+  const c=crypto.subtle,enc=new TextEncoder();
+  const base=await c.importKey('raw',enc.encode(String(code).trim().toLowerCase()),'PBKDF2',false,['deriveKey']);
+  const key=await c.deriveKey({name:'PBKDF2',salt:b64d(LOCK.s),iterations:LOCK.i,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await c.decrypt({name:'AES-GCM',iv:b64d(LOCK.iv)},key,b64d(LOCK.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
 /* Spotify n'est plus utilisé : on efface ses restes */
 function saveCfg(){try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}
 try{if(cfg.sp||cfg.sons){delete cfg.sp;delete cfg.sons;saveCfg()}localStorage.removeItem('regie-sp-tok');localStorage.removeItem('regie-sp-ver')}catch(e){}
@@ -1044,13 +1085,11 @@ function fillSelects(){
 function openSettings(){$('fTw').value=cfg.tw||'';$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fQ').value=cfg.pvQ;$('fFps').value=String(cfg.pvFps||3);fillSelects();$('sheet').classList.add('on')}
 $('gear').onclick=openSettings;
 $('fLink').onclick=async()=>{
-  haptic();if(!cfg.host||!cfg.pass){toast('Connecte-toi d’abord à OBS');return}
-  const p=new URLSearchParams();p.set('host',cfg.host);p.set('pass',cfg.pass);if(cfg.tw)p.set('tw',cfg.tw);if(cfg.entry)p.set('entry',cfg.entry);
-  const url=location.origin+location.pathname+'#'+p.toString();
+  haptic();const p=new URLSearchParams();if(cfg.tw)p.set('tw',cfg.tw);if(cfg.entry)p.set('entry',cfg.entry);
+  const url=location.origin+location.pathname+(p.toString()?'#'+p.toString():'');
   $('fLinkBox').style.display='block';$('fLinkOut').value=url;
-  // feuille de partage iOS (Messages, WhatsApp, AirDrop…) si dispo, sinon copie
-  if(navigator.share){try{await navigator.share({title:'Régie EXIT',text:'Accès à la Régie EXIT (ouvre le lien, c’est connecté) :',url});return}catch(e){if(e&&e.name==='AbortError')return}}
-  try{await navigator.clipboard.writeText(url);toast('Lien copié : colle-le dans un message')}catch(e){$('fLinkOut').select();toast('Sélectionne et copie le lien')}
+  if(navigator.share){try{await navigator.share({title:'Régie EXIT',text:'Régie EXIT : ouvre le lien et entre le code d’équipe.',url});return}catch(e){if(e&&e.name==='AbortError')return}}
+  try{await navigator.clipboard.writeText(url);toast('Lien copié : donne aussi le code d’équipe')}catch(e){$('fLinkOut').select();toast('Sélectionne et copie le lien')}
 };
 $('fClose').onclick=()=>$('sheet').classList.remove('on');
 $('fReload').onclick=()=>{haptic();$('sheet').classList.remove('on');if(S.ok){loadAll();toast('Rechargé')}else connect()};
@@ -1058,7 +1097,7 @@ $('sheet').addEventListener('click',e=>{if(e.target.id==='sheet')$('sheet').clas
 $('fSave').onclick=()=>{
   const nh=$('fHost').value.trim(),np=$('fPort').value.trim()||'4455',npw=$('fPass').value.trim();
   const changed=cfg.host!==nh||cfg.port!==np||cfg.pass!==npw;
-  cfg.host=nh;cfg.port=np;cfg.pass=npw;
+  if(changed)cfg.manual=true;cfg.host=nh;cfg.port=np;cfg.pass=npw;
   cfg.entry=$('fEntry').value;cfg.autoHide=$('fAuto').checked;cfg.tw=$('fTw').value.trim().replace(/^.*twitch\.tv\//i,'').replace(/[/?#].*$/,'').trim();cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;$('pvFpsSel').value=String(cfg.pvFps);$('pvInfo').textContent=cfg.pvFps+' img/s';saveCfg();
   $('sheet').classList.remove('on');renderPanic();renderPvTag();renderAudio();renderRegie();S.frozen=0;S.lastThumb='';
   if(changed||!S.ok){S.retry=0;connect()}else toast('Réglages enregistrés');
@@ -1110,8 +1149,22 @@ $('clock').textContent=clockTxt();
 $('pvInfo').textContent=(cfg.pvFps||3)+' img/s';applyPvOn();renderPvTag();renderRegie();renderAudio();renderStats();renderLiveBadge();wake();
 requestAnimationFrame(meterFrame);pvLoop();frozenLoop();
 
-if(fromLink)setTimeout(()=>toast('Accès configuré ✓ Tu peux ajouter l’appli à l’écran d’accueil'),400);
-if(cfg.host)connect();else{pvMsg('Configure la connexion ⚙︎');openSettings()}
+function showLock(msg){$('lock').classList.add('on');$('lockErr').textContent=msg||'';setTimeout(()=>{try{$('lockIn').focus()}catch(e){}},300);pvMsg('Verrouillé')}
+async function tryCode(code,silent){
+  try{const c=await unlock(code);cfg.host=c.host;cfg.pass=c.pass;cfg.code=String(code).trim().toLowerCase();cfg.manual=false;saveCfg();
+    $('lock').classList.remove('on');S.retry=0;connect();if(!silent)toast('Bienvenue dans la Régie EXIT');return true}
+  catch(e){if(!silent){$('lockErr').textContent='Code incorrect';const l=$('lock');l.classList.remove('shake');void l.offsetWidth;l.classList.add('shake');haptic()}return false}
+}
+$('lockBtn').onclick=()=>{const v=$('lockIn').value;if(!v.trim())return;$('lockBtn').textContent='Vérification…';tryCode(v,false).finally(()=>$('lockBtn').textContent='Entrer')};
+$('lockIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('lockBtn').click()});
+$('fLock').onclick=()=>{haptic();delete cfg.code;delete cfg.host;delete cfg.pass;saveCfg();try{S.manual=true;S.ws&&S.ws.close()}catch(e){}$('sheet').classList.remove('on');$('lockIn').value='';showLock('')};
+(async()=>{
+  // code déjà retenu : on redéchiffre à chaque ouverture, pour suivre un éventuel nouveau mot de passe OBS
+  if(cfg.code&&await tryCode(cfg.code,true))return;
+  if(cfg.manual&&cfg.host){connect();return}
+  if(cfg.code)delete cfg.code;
+  showLock(cfg.code===undefined&&cfg.host?'':'');
+})();
 </script>
 </body>
 </html>
