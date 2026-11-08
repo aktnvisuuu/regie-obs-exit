@@ -152,8 +152,6 @@ main{padding:0 16px calc(env(safe-area-inset-bottom) + 92px)}
 #v-lieux .tile .n,#v-musiques .tile .n{font-size:17px;padding-top:8px}
 #v-lieux .tile .k,#v-musiques .tile .k{font-size:11px;margin-top:3px}
 #v-lieux .big span{color:var(--lilac)}#v-musiques .big span{color:var(--yel)}
-.autobar{display:none;width:100%;margin:0 0 12px;padding:14px 16px;border-radius:16px;background:var(--card);text-align:left;font-size:14px;font-weight:700;color:var(--sub);box-shadow:inset 0 0 0 1.5px rgba(30,215,96,.45)}
-.autobar.on{display:block}.autobar b{color:#1ED760}
 /* Son */
 .strip{background:var(--card);border-radius:26px;padding:16px 16px 10px;margin-bottom:10px}
 .strip.muted .mtr,.strip.muted .fd{opacity:.3}
@@ -182,29 +180,24 @@ input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;hei
 input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--card3)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:#fff;margin-top:-12px;box-shadow:0 2px 8px rgba(0,0,0,.6)}
 
-/* Spotify */
-.spc{background:var(--card);border-radius:26px;padding:16px;margin-bottom:10px}
-.sprow{display:flex;gap:14px;align-items:center}
-.spart{width:72px;height:72px;border-radius:16px;background:var(--card3);flex-shrink:0;object-fit:cover;display:block}
-.spst{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;background:var(--card3)}
-.spst.play{background:#1ED760;color:var(--ink)}.spst.pause{background:var(--orange);color:var(--ink)}
-.sptt{font-size:19px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.spar{font-size:14px;font-weight:600;color:var(--sub);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.spmeta{flex:1;min-width:0}
-.splog{font-size:12px;font-weight:600;color:var(--sub);margin-top:10px;font-variant-numeric:tabular-nums}
-.splog:empty{display:none}
-.btn.sp{background:#1ED760;color:var(--ink)}
-.snrow{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
-.snrow:last-child{border-bottom:0}
-.snrow .nn{font-size:13px;font-weight:800;color:var(--g);width:22px;flex-shrink:0;font-variant-numeric:tabular-nums}
-.snrow .tt{flex:1;min-width:0;font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.snrow .tt small{display:block;font-size:12px;font-weight:600;color:var(--sub)}
-.snrow input{width:92px;flex-shrink:0;background:var(--card2);border:0;border-radius:10px;color:#fff;font-size:14px;font-weight:600;padding:8px 10px;outline:none}
-#snList{margin-top:4px}
-.snrow select{width:150px;flex-shrink:0;background:var(--card2);border:0;border-radius:10px;color:#fff;font-size:13px;font-weight:700;padding:8px;outline:none;-webkit-appearance:none;appearance:none}
-.snrow.bad .nn{color:var(--orange)}
-#pilTitle,#pilSub{white-space:normal;overflow:visible}
-#pilSub{white-space:pre-line}
+/* Retour son */
+.gear.on{background:var(--g);color:var(--ink)}
+.ear{display:none;position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 72px);max-width:536px;margin:0 auto;z-index:6;
+  align-items:center;gap:10px;padding:8px;border-radius:22px;background:rgba(24,24,24,.96);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+  box-shadow:0 8px 30px rgba(0,0,0,.6),inset 0 0 0 1.5px rgba(43,224,127,.4)}
+@media (max-width:560px){.ear{left:12px;right:12px}}
+.ear.on{display:flex}
+.earv{width:112px;height:63px;border-radius:14px;overflow:hidden;flex-shrink:0;background:#000;position:relative}
+#twBox{width:400px;height:225px;transform:scale(.28);transform-origin:0 0}
+#twBox iframe{width:400px;height:225px;border:0}
+.eart{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.eart b{font-size:14px;font-weight:800}
+.eart span{font-size:12px;font-weight:600;color:var(--sub);line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.earb{align-self:flex-start;height:28px;padding:0 12px;margin-top:4px;border-radius:999px;background:var(--card3);font-size:12px;font-weight:800}
+.earb.on{background:var(--g);color:var(--ink)}
+.earx{width:36px;height:36px;border-radius:50%;background:var(--card3);font-size:14px;font-weight:800;flex-shrink:0}
+body.earon main{padding-bottom:calc(env(safe-area-inset-bottom) + 190px)}
+body.earon .toast{bottom:calc(env(safe-area-inset-bottom) + 180px)}
 /* ---------- Pied ---------- */
 footer{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;z-index:5;padding:22px 16px calc(env(safe-area-inset-bottom) + 6px);background:linear-gradient(to top,var(--bg) 55%,rgba(10,10,10,0));pointer-events:none}
 footer nav{pointer-events:auto}
@@ -248,6 +241,7 @@ nav button[data-v=musiques].on{background:var(--yel)}
     <div class="logo"><img src="logo.png" alt=""></div>
     <div class="ttl"><b>Régie</b><span>EXIT</span></div>
     <div class="live" id="live">HORS LIGNE</div>
+    <button class="gear" id="ear" aria-label="Retour son">🎧</button>
     <button class="gear" id="gear" aria-label="Réglages">⚙︎</button>
   </div>
   <div class="pv" id="pv">
@@ -288,41 +282,17 @@ nav button[data-v=musiques].on{background:var(--yel)}
     <h2 class="big"><b>Musiques</b><span id="n-musiques">–</span></h2>
     <div class="libbar"><button class="stopall" data-stopall="musiques">■ Tout arrêter</button></div>
     <div class="libwarn" id="w-musiques"></div>
-    <button class="autobar" id="autoBar"></button>
     <div class="grid" id="g-musiques"></div>
   </section>
   <section class="view" id="v-son"></section>
-  <section class="view" id="v-spot">
-    <h2 class="big"><b>Spotify</b><span>Lecture → OBS</span></h2>
-    <div class="spc">
-      <div class="sprow"><img class="spart" id="spArt" alt=""><div class="spmeta"><span class="spst" id="spSt">Non connecté</span><div class="sptt" id="spTitle">–</div><div class="spar" id="spArtist"></div></div></div>
-      <div class="splog" id="spLog"></div>
-      <button class="btn sp" id="spConnect">Connecter Spotify</button>
-    </div>
-    <div class="spc">
-      <div class="rh"><span class="lbl">Spotify automatique</span><span class="rstate" id="pilSt">Pas installé</span></div>
-      <div class="sptt" id="pilTitle" style="font-size:17px">Un son de la playlist part sur Spotify → sa musique s’affiche sur la caméra.</div>
-      <div class="spar" id="pilSub"></div>
-      <label class="check" id="pilOnBox" style="display:none">Mode automatique<input type="checkbox" switch id="pilOn"></label>
-    </div>
-    <div class="spc">
-      <div class="rh"><span class="lbl">1 · Playlist</span></div>
-      <div class="field"><label>Lien de la playlist</label><input id="snPl" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://open.spotify.com/playlist/…"></div>
-      <button class="btn ghost" id="snLoad">Charger la playlist</button>
-      <div class="spar" id="snCount" style="margin-top:8px"></div>
-    </div>
-    <div class="spc">
-      <div class="rh"><span class="lbl">2 · Morceau → musique</span><span class="rstate" id="mapSt">–</span></div>
-      <p class="note" style="margin:8px 4px 4px">Associé automatiquement par le titre. Corrige une ligne si besoin.</p>
-      <div id="snList"></div>
-    </div>
-    <div class="spc">
-      <div class="rh"><span class="lbl">3 · Installation</span></div>
-      <button class="btn sp" id="snPilot">Installer / mettre à jour le pilote</button>
-      <div class="splog" id="snLog" style="white-space:pre-line"></div>
-    </div>
-  </section>
 </main>
+
+<!-- Retour son (lecteur Twitch) -->
+<div class="ear" id="earDock">
+  <div class="earv"><div id="twBox"></div></div>
+  <div class="eart"><b>🎧 Retour son</b><span id="earSt">Chargement…</span><button class="earb" id="earQ">Audio seul</button></div>
+  <button class="earx" id="earX" aria-label="Fermer le retour son">✕</button>
+</div>
 
 <footer>
   <nav>
@@ -338,10 +308,11 @@ nav button[data-v=musiques].on{background:var(--yel)}
   <div class="panel">
     <div class="grab"></div>
     <h3>Réglages</h3>
-    <div class="sub">Connexion à OBS (irl.run → Settings → System). · Version du 6 nov. 12 h 50</div>
+    <div class="sub">Connexion à OBS (irl.run → Settings → System). · Version du 8 nov.</div>
     <div class="field"><label>Adresse OBS (IP, domaine ou wss://…)</label><input id="fHost" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="wss://…irl.run:4456"></div>
     <div class="field"><label>Port (ignoré avec ws:// ou wss://)</label><input id="fPort" inputmode="numeric" placeholder="4455"></div>
     <div class="field"><label>Mot de passe WebSocket</label><input id="fPass" type="password" autocapitalize="off" autocorrect="off" placeholder="••••••"></div>
+    <div class="field"><label>Chaîne Twitch (retour son 🎧)</label><input id="fTw" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="nom de la chaîne ou lien twitch.tv/…"></div>
     <div class="field"><label>Source d’entrée (flux du LiveU)</label><select id="fEntry"></select></div>
     <div class="field"><label>Netteté du retour image</label><select id="fQ">
       <option value="eco">Éco : 480 px, léger</option>
@@ -361,7 +332,6 @@ nav button[data-v=musiques].on{background:var(--yel)}
     <button class="btn" id="fSave">Enregistrer et connecter</button>
     <button class="btn ghost" id="fLink">🔗 Copier mon lien de connexion</button>
     <div class="field" id="fLinkBox" style="display:none"><label>Lien (garde-le pour toi : il contient le mot de passe)</label><input id="fLinkOut" readonly></div>
-    <button class="btn sp" id="fSpot">🎵 Spotify automatique</button>
     <button class="btn ghost" id="fReload">Recharger scènes et sources</button>
     <button class="btn ghost" id="fClose">Fermer</button>
   </div>
@@ -386,7 +356,9 @@ let fromLink=false;
 try{const hs=location.hash.slice(1);if(hs&&hs!==cfg.lastHash){const p=new URLSearchParams(hs);
   for(const k of['host','pass','port','entry','secours'])if(p.has(k)){cfg[k]=p.get(k).trim();fromLink=true}
   if(fromLink){cfg.lastHash=hs;try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}}}catch(e){}
+/* Spotify n'est plus utilisé : on efface ses restes */
 function saveCfg(){try{localStorage.setItem(KEY,JSON.stringify(cfg))}catch(e){}}
+try{if(cfg.sp||cfg.sons){delete cfg.sp;delete cfg.sons;saveCfg()}localStorage.removeItem('regie-sp-tok');localStorage.removeItem('regie-sp-ver')}catch(e){}
 const QUAL={eco:{w:480,q:55},std:{w:960,q:72},hd:{w:1280,q:82}};
 const FPS=[1,3,5,10,15,25,50];
 const MEDIA=['ffmpeg_source','vlc_source'];
@@ -484,6 +456,7 @@ function req(type,data){
 async function loadAll(){
   try{await loadScenes()}catch(e){toast(e.message)}
   try{await loadInputs()}catch(e){}
+  if(S.inputs.some(i=>i.name==='_Pilote Spotify EXIT')){try{await req('RemoveInput',{inputName:'_Pilote Spotify EXIT'});S.inputs=S.inputs.filter(i=>i.name!=='_Pilote Spotify EXIT');fillSelects();toast('Ancien pilote Spotify retiré d’OBS')}catch(e){}}
   try{await loadAssets()}catch(e){}
   pollStats();
 }
@@ -532,7 +505,6 @@ async function loadInputs(){
       list.push(i.name);
     }catch(e){}
   }));
-  fillSpot();pilotItem();
   S.audio=list.sort((a,b)=>(b===entry)-(a===entry)||a.localeCompare(b,'fr'));
   fillSelects();renderAudio();renderPvTag();
 }
@@ -566,7 +538,6 @@ function onIrltk(x){
 }
 function onEvent(t,d){
   {const x=findIrltk(t,d);if(x){onIrltk(x);return}}
-  if(t==='CustomEvent'&&d.eventData&&d.eventData.regieExit==='pilote'){SN.pil=Object.assign({},d.eventData,{at:Date.now()});renderPilot();return}
   switch(t){
     case'CurrentProgramSceneChanged':
       if(d.sceneName!==S.program){if(!isSecours(S.program))S.prev=S.program;S.program=d.sceneName}
@@ -1011,7 +982,7 @@ function renderAudio(){
   S.rows=[...mix,...rest];
   v.innerHTML=`<h2 class="big"><b>Son</b><span>Mix du live</span></h2>`+mix.map(k=>stripHTML(k,S.rows.indexOf(k),entry)).join('')+
     (rest.length?`<div class="cat" style="--c:var(--sub);margin-top:22px"><i></i>Autres pistes</div>`+rest.map(k=>stripHTML(k,S.rows.indexOf(k),entry)).join(''):'')+
-    '<p class="note">« Musiques » règle d’un seul geste le volume des 34 musiques (et « Lieux » des 9 lieux), qu’elles soient lancées à la main ou par Spotify. « Micros » = le son qui arrive du LiveU. Toucher la valeur en dB la remet à 0.</p>';
+    '<p class="note">« Musiques » règle d’un seul geste le volume des 34 musiques (et « Lieux » des 9 lieux), « Micros » = le son qui arrive du LiveU. Toucher la valeur en dB la remet à 0.</p>';
   v.querySelectorAll('.strip').forEach(el=>{const key=S.rows[+el.dataset.a];
     strips.set(key,{el,cov:[...el.querySelectorAll('.ch i')],pk:[...el.querySelectorAll('.ch b')],sil:el.querySelector('.sil'),db:el.querySelector('.db b'),fd:el.querySelector('.fd'),pill:el.querySelector('.pill')})});
 }
@@ -1065,212 +1036,11 @@ function silenceTick(){
   updateAlert();
 }
 
-/* ================= Spotify : lecture → source OBS ================= */
-const SP_ID='21085f0b00a64514a2e1097e7ba31137',SP_TK='regie-sp-tok';
-const SP_REDIRECT=location.origin+location.pathname.replace(/index\.html$/,'');
-cfg.sp=Object.assign({on:false,scene:'',source:'',text:''},cfg.sp||{});
-let spTok=null;try{spTok=JSON.parse(localStorage.getItem(SP_TK)||'null')}catch(e){}
-const SP={playing:null,track:'',title:'',artist:'',art:'',err:'',applied:null,textApplied:'',wait:0};
-const b64url=b=>btoa(String.fromCharCode(...b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-async function sha256b(s){const d=new TextEncoder().encode(s);if(window.crypto&&crypto.subtle)return new Uint8Array(await crypto.subtle.digest('SHA-256',d));return sha256(d)}
-function spSave(){try{spTok?localStorage.setItem(SP_TK,JSON.stringify(spTok)):localStorage.removeItem(SP_TK)}catch(e){}}
-async function spLogin(){
-  const r=new Uint8Array(48);crypto.getRandomValues(r);const ver=b64url(r);
-  const ch=b64url(await sha256b(ver));
-  // le vérificateur voyage aussi dans « state » pour que la connexion marche même si iOS change de contexte
-  const st=(spLogin.mode==='pilot'?'p':'r')+Math.random().toString(36).slice(2,10)+'.'+ver;spLogin.mode='';
-  try{localStorage.setItem('regie-sp-ver',ver)}catch(e){}
-  const q=new URLSearchParams({client_id:SP_ID,response_type:'code',redirect_uri:SP_REDIRECT,code_challenge_method:'S256',code_challenge:ch,state:st,
-    scope:'user-read-playback-state user-read-currently-playing'});
-  location.href='https://accounts.spotify.com/authorize?'+q;
-}
-async function spToken(body){
-  const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body)});
-  const j=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(j.error_description||j.error||('HTTP '+r.status));
-  spTok={access:j.access_token,refresh:j.refresh_token||(spTok&&spTok.refresh),exp:Date.now()+(j.expires_in||3600)*1000-60000};spSave();
-}
-async function spHandleReturn(){
-  const u=new URL(location.href);const code=u.searchParams.get('code'),st=u.searchParams.get('state'),err=u.searchParams.get('error');
-  if(!code&&!err)return;
-  history.replaceState(null,'',location.pathname+location.hash);
-  if(err){SP.err='Connexion Spotify refusée ('+err+')';return}
-  let ver='';try{ver=localStorage.getItem('regie-sp-ver')||''}catch(e){}
-  if(!ver&&st&&st.includes('.'))ver=st.split('.').slice(1).join('.');
-  if(st&&st[0]==='p'){
-    // connexion dédiée au pilote : jeton séparé, jamais utilisé par la Régie
-    try{const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
-        body:new URLSearchParams({grant_type:'authorization_code',code,redirect_uri:SP_REDIRECT,client_id:SP_ID,code_verifier:ver})});
-      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error_description||j.error||r.status);
-      SN.pendingRt=j.refresh_token;openSpotTab();snLog('Spotify autorisé pour le pilote. Installation dès qu’OBS est connecté…');
-      const wait=async()=>{for(let i=0;i<80&&!(S.ok&&musicTiles().length&&cfg.sons.tracks.length);i++)await sleep(500);await snInstallPilot()};wait();
-    }catch(e){SP.err='Échec de l’autorisation du pilote : '+e.message}
-    return;
-  }
-  try{await spToken({grant_type:'authorization_code',code,redirect_uri:SP_REDIRECT,client_id:SP_ID,code_verifier:ver});
-    SP.err='';setTimeout(()=>toast('Spotify connecté'),300);
-    openSpotTab();
-  }catch(e){SP.err='Échec de la connexion Spotify : '+e.message}
-}
-async function spFetch(path){
-  if(!spTok)throw new Error('non connecté');
-  if(Date.now()>spTok.exp)await spToken({grant_type:'refresh_token',refresh_token:spTok.refresh,client_id:SP_ID});
-  let r=await fetch('https://api.spotify.com/v1'+path,{headers:{Authorization:'Bearer '+spTok.access}});
-  if(r.status===401){await spToken({grant_type:'refresh_token',refresh_token:spTok.refresh,client_id:SP_ID});r=await fetch('https://api.spotify.com/v1'+path,{headers:{Authorization:'Bearer '+spTok.access}})}
-  return r;
-}
-async function spLoop(){
-  for(;;){
-    await sleep(SP.wait||1000);SP.wait=0;
-    if(!spTok||document.hidden)continue;
-    try{
-      const r=await spFetch('/me/player?additional_types=track,episode');
-      if(r.status===429){SP.wait=(+r.headers.get('Retry-After')||5)*1000;continue}
-      if(r.status===204){SP.playing=false;SP.track='';SP.title='';SP.artist='';SP.art=''}
-      else if(r.ok){const j=await r.json();const it=j.item||{};
-        SP.playing=!!j.is_playing;SP.track=it.id||it.uri||'';SP.title=it.name||'';
-        SP.artist=(it.artists||[]).map(a=>a.name).join(', ')||(it.show&&it.show.name)||'';
-        const imgs=(it.album&&it.album.images)||it.images||[];SP.art=imgs.length?imgs[imgs.length>1?1:0].url:''}
-      else if(r.status===403){SP.err='Spotify refuse l’accès (compte ajouté dans User Management ? Premium ?)'}
-      else SP.err='Spotify : erreur '+r.status;
-      if(r.ok||r.status===204)SP.err='';
-    }catch(e){SP.err='Spotify : '+e.message;if(/invalid_grant|revoked/i.test(e.message)){spTok=null;spSave()}}
-    renderSpot();
-  }
-}
-function openSpotTab(){S.view='spot';document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.v==='spot'));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-spot'))}
-
-/* ================= Spotify automatique : pilote dans OBS ================= */
-cfg.sons=Object.assign({pl:'https://open.spotify.com/playlist/4oxiAP0a5NawZu1ABSPakF',tracks:[],map:{}},cfg.sons||{});cfg.sons.map=cfg.sons.map||{};
-const SN={pendingRt:null,pil:null};
-const PILOT='_Pilote Spotify EXIT',MUS_PRE='[Musiques] ';
-const nn2=i=>String(i+1).padStart(2,'0');
-function snLog(t){const el=$('snLog');el.textContent=(new Date().toLocaleTimeString('fr-FR')+' · '+t+'\n'+el.textContent).slice(0,1500)}
-function musicTiles(){return S.tiles.filter(t=>t.lib==='musiques').sort((a,b)=>a.label.localeCompare(b.label,'fr',{numeric:true}))}
-const nnOf=lbl=>(lbl.match(/^(\d+)/)||[])[1]||'';
-const titleOf=lbl=>lbl.replace(/^\d+\s*·\s*/,'');
-const N=s=>norm(s).replace(/&/g,'and').replace(/[^a-z0-9]+/g,' ').trim();
-const base=s=>N(String(s).replace(/\s+-\s+.*$/,'').replace(/\(.*?\)|\[.*?\]/g,''));
-const isFr=s=>/fran[cç]ais|french/i.test(s);
-function autoMatch(track,mus){
-  const tf=N(track.name),tb=base(track.name);
-  let c=mus.filter(m=>N(titleOf(m.label))===tf);
-  if(!c.length)c=mus.filter(m=>base(titleOf(m.label))===tb);
-  if(c.length>1){const f=c.filter(m=>isFr(m.label)===isFr(track.name));if(f.length)c=f}
-  if(!c.length)c=mus.filter(m=>base(titleOf(m.label)).length>3&&(tb.includes(base(titleOf(m.label)))||base(titleOf(m.label)).includes(tb)));
-  return c.length?nnOf(c[0].label):'';
-}
-function mapping(){
-  const mus=musicTiles(),out={};
-  for(const t of cfg.sons.tracks){const m=cfg.sons.map[t.id];out[t.id]=m===undefined?autoMatch(t,mus):m}
-  return out;
-}
-function snRender(){
-  $('snPl').value=cfg.sons.pl||'';
-  const T=cfg.sons.tracks||[],mus=musicTiles(),M=mapping();
-  $('snCount').textContent=T.length?T.length+' morceaux chargés':'Pas encore chargée';
-  const ok=T.filter(t=>M[t.id]).length;
-  const st=$('mapSt');st.textContent=T.length?ok+'/'+T.length+' associés':'–';st.style.background=T.length&&ok===T.length?'var(--g)':T.length?'var(--orange)':'var(--card3)';st.style.color=T.length?'var(--ink)':'#fff';
-  const opts='<option value="">— aucune —</option>'+mus.map(m=>`<option value="${nnOf(m.label)}">${esc(m.label)}</option>`).join('');
-  $('snList').innerHTML=T.length?T.map((t,i)=>`<div class="snrow${M[t.id]?'':' bad'}"><span class="nn">${M[t.id]?'✓':'!'}</span><div class="tt">${esc(t.name)}<small>${esc(t.artist||'')}</small></div><select data-map="${esc(t.id)}">${opts.replace(`value="${M[t.id]}"`,`value="${M[t.id]}" selected`)}</select></div>`).join(''):(mus.length?'':'<div class="note">Aucune musique trouvée dans OBS (sources « [Musiques] … » dans Ingest).</div>');
-}
-function plId(u){const m=String(u).match(/playlist[\/:]([A-Za-z0-9]{10,})/);return m?m[1]:String(u).trim()}
-async function snLoad(){
-  if(!spTok){toast('Connecte d’abord Spotify');return}
-  const id=plId(cfg.sons.pl);snLog('Chargement de la playlist…');
-  const out=[];let url='/playlists/'+id+'/items?limit=50',tries=0;
-  try{
-    while(url&&tries<10){tries++;let r=await spFetch(url);
-      if(r.status===404&&url.includes('/items')){url=url.replace('/items','/tracks');r=await spFetch(url)}
-      if(r.status===403)throw new Error('accès refusé : il faut être propriétaire ou collaborateur de la playlist');
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      const j=await r.json();
-      for(const x of j.items||[]){const t=x.track||x.item||{};if(!t||!t.id)continue;out.push({id:t.id,name:t.name||'?',artist:(t.artists||[]).map(a=>a.name).join(', ')})}
-      url=j.next?j.next.replace('https://api.spotify.com/v1',''):null;
-    }
-    cfg.sons.tracks=out;saveCfg();snRender();snLog(out.length+' morceaux chargés');
-  }catch(e){snLog('Erreur playlist : '+e.message)}
-}
-function wsUrl(){const h=cfg.host.trim();return /^wss?:\/\//i.test(h)?h:'ws://'+h+':'+(cfg.port||4455)}
-function ingestScene(){return S.scenes.find(n=>/^ingest$/i.test(n))||(musicTiles()[0]||{}).c||'Ingest'}
-async function snInstallPilot(){
-  let rt=SN.pendingRt;
-  if(!rt&&S.ok){try{const u=(await req('GetInputSettings',{inputName:PILOT})).inputSettings.url||'';rt=new URLSearchParams(u.split('#')[1]||'').get('rt')||null;if(rt)snLog('Mise à jour du pilote existant (sans nouvelle autorisation)')}catch(e){}}
-  if(!rt){spLogin.mode='pilot';spLogin();return}
-  if(!S.ok){snLog('OBS non connecté : installation impossible');return}
-  const M=mapping(),pairs=Object.entries(M).filter(([,n])=>n);
-  if(!pairs.length){snLog('Aucun morceau associé : charge la playlist');return}
-  const base=location.origin+location.pathname.replace(/index\.html$/,'').replace(/[^/]*$/,'');
-  const scene=ingestScene();
-  const tt={};for(const t of cfg.sons.tracks){const n=M[t.id];if(!n)continue;tt[N(t.name)]=n;const b=base(t.name);if(!(b in tt))tt[b]=n}
-  for(const m of musicTiles()){const n=nnOf(m.label),ti=titleOf(m.label);if(!(N(ti) in tt))tt[N(ti)]=n}
-  const q=new URLSearchParams({cid:SP_ID,rt,ws:wsUrl(),pw:cfg.pass,scene,pre:MUS_PRE,m:pairs.map(([id,n])=>id+':'+n).join(','),tt:JSON.stringify(tt)});
-  const url=base+'bridge.html?v='+Date.now()+'#'+q.toString();
-  const st={url,width:320,height:60,fps:30,shutdown:false,restart_when_active:false,reroute_audio:false,css:'body{background:transparent!important}'};
-  try{
-    let exists=false;try{await req('GetInputSettings',{inputName:PILOT});exists=true}catch(e){}
-    if(exists)await req('SetInputSettings',{inputName:PILOT,inputSettings:st,overlay:true});
-    else await req('CreateInput',{sceneName:scene,inputName:PILOT,inputKind:'browser_source',inputSettings:st,sceneItemEnabled:true});
-    SN.pendingRt=null;snLog('Pilote '+(exists?'mis à jour':'installé')+' dans « '+scene+' » ✓ ('+pairs.length+' morceaux)');toast('Spotify automatique installé');
-    await pilotItem();
-  }catch(e){snLog('Erreur pilote : '+e.message)}
-}
-/* Interrupteur ON/OFF : active/désactive la source du pilote (désactivée = elle ne tourne plus) */
-async function pilotItem(){
-  try{for(const sc of S.scenes){const it=((await req('GetSceneItemList',{sceneName:sc})).sceneItems||[]).find(i=>i.sourceName===PILOT);
-    if(it){SN.item={scene:sc,id:it.sceneItemId,on:it.sceneItemEnabled};$('pilOnBox').style.display='flex';$('pilOn').checked=it.sceneItemEnabled;renderPilot();return SN.item}}}catch(e){}
-  SN.item=null;$('pilOnBox').style.display='none';renderPilot();return null;
-}
-$('pilOn').onchange=async e=>{haptic();const v=e.target.checked;if(!SN.item)await pilotItem();if(!SN.item)return;
-  try{await req('SetInputSettings',{inputName:PILOT,inputSettings:{shutdown:!v},overlay:true});
-    await req('SetSceneItemEnabled',{sceneName:SN.item.scene,sceneItemId:SN.item.id,sceneItemEnabled:v});SN.item.on=v;if(!v)SN.pil=null;
-    toast(v?'Spotify automatique : ON':'Spotify automatique : OFF');renderPilot()}catch(err){toast('Erreur : '+err.message);e.target.checked=!v}};
-function renderPilot(){
-  const p=SN.pil,st=$('pilSt'),bar=$('autoBar');if(!st)return;
-  const age=p?Date.now()-p.at:1e9,off=SN.item&&!SN.item.on;
-  let lab,bg,fg='var(--ink)',title,sub='';
-  if(off){lab='OFF';bg='var(--card3)';fg='#fff';title='Mode automatique coupé : tout est manuel.'}
-  else if(!p){lab=SN.item?'Démarrage…':'Pas installé';bg='var(--card3)';fg='#fff';title=SN.item?'Le pilote démarre dans OBS…':'Installe le pilote (étape 3).'}
-  else if(age>15000){lab='Silencieux';bg='var(--orange)';title='Plus de nouvelles du pilote depuis '+Math.round(age/1000)+' s'}
-  else if(p.err){lab='Erreur';bg='var(--red)';fg='#fff';title=p.err}
-  else{lab='Actif';bg='#1ED760';title=p.title?((p.playing?'▶ ':'⏸ ')+p.title):'Rien ne joue sur Spotify';
-    sub=p.nn?('Musique '+p.nn+(p.paused?' en pause':' à l’antenne')):(p.title&&!p.mapped?'Morceau hors liste : aucune musique':(p.tracks+' morceaux surveillés'))}
-  st.textContent=lab;st.style.background=bg;st.style.color=fg;$('pilTitle').textContent=title;$('pilSub').textContent=sub+(p&&p.logs&&p.logs.length&&!off?'\n'+p.logs.slice(0,4).join('\n'):'');
-  if(bar){bar.classList.add('on');bar.innerHTML=SN.item?('🎵 Spotify auto : <b>'+esc(lab)+'</b>'+(p&&p.title&&!off?' · '+esc((p.playing?'▶ ':'⏸ ')+p.title):'')+' ›'):(spTok?'🎵 Spotify connecté · <b>installer le mode automatique ›</b>':'🎵 <b>Connecter Spotify</b> pour lancer les musiques automatiquement ›')}
-}
-$('snPl').onchange=e=>{cfg.sons.pl=e.target.value.trim();saveCfg()};
-$('snList').addEventListener('change',e=>{const s=e.target.closest('[data-map]');if(!s)return;cfg.sons.map[s.dataset.map]=s.value;saveCfg();snRender()});
-$('snLoad').onclick=()=>{haptic();snLoad()};
-$('snPilot').onclick=()=>{haptic();if(!cfg.sons.tracks.length){toast('Charge d’abord la playlist');return}snInstallPilot()};
-$('fSpot').onclick=()=>{$('sheet').classList.remove('on');openSpotTab();fillSpot();pilotItem();window.scrollTo(0,0)};
-$('autoBar').onclick=()=>{openSpotTab();fillSpot();pilotItem();window.scrollTo(0,0)};
-setInterval(renderPilot,1000);
-setInterval(async()=>{if(!S.ok||document.hidden)return;
-  try{const v=(await req('GetPersistentData',{realm:'OBS_WEBSOCKET_DATA_REALM_GLOBAL',slotName:'exitPilote'})).slotValue;
-    if(v&&v.regieExit==='pilote'&&(!SN.pil||v.ts>SN.pil.ts)){SN.pil=Object.assign({},v,{at:Date.now()-Math.max(0,Math.min(60000,Date.now()-v.ts))});renderPilot()}}catch(e){}},2000);
-
-function spLog(t){$('spLog').textContent=new Date().toLocaleTimeString('fr-FR')+' · '+t}
-function renderSpot(){
-  const st=$('spSt');
-  if(!spTok){st.className='spst';st.textContent='Non connecté';$('spTitle').textContent=SP.err||'Connecte ton compte Spotify';$('spArtist').textContent='';$('spArt').removeAttribute('src');$('spConnect').textContent='Connecter Spotify';$('spConnect').className='btn sp';return}
-  $('spConnect').textContent='Déconnecter Spotify';$('spConnect').className='btn ghost';
-  if(SP.err){st.className='spst';st.textContent='Erreur';$('spTitle').textContent=SP.err;$('spArtist').textContent='';return}
-  if(SP.playing===null){st.className='spst';st.textContent='Connexion…';return}
-  st.className='spst '+(SP.playing?'play':SP.title?'pause':'');
-  st.textContent='Spotify voit : '+(SP.playing?'▶ lecture':SP.title?'⏸ pause':'rien');
-  $('spTitle').textContent=SP.title||'Rien ne joue';$('spArtist').textContent=SP.artist;
-  if(SP.art){if($('spArt').src!==SP.art)$('spArt').src=SP.art}else $('spArt').removeAttribute('src');
-}
-async function fillSpot(){
-  snRender();
-  }
-$('spConnect').onclick=()=>{haptic();if(spTok){spTok=null;spSave();SP.playing=null;SP.applied=null;renderSpot();toast('Spotify déconnecté')}else spLogin()};
-
 /* ================= Réglages ================= */
 function fillSelects(){
   $('fEntry').innerHTML='<option value="">Auto (nom avec « LiveU », « SRT », « Ingest »…)</option>'+S.inputs.map(i=>`<option${i.name===cfg.entry?' selected':''}>${esc(i.name)}</option>`).join('');
 }
-function openSettings(){$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fQ').value=cfg.pvQ;$('fFps').value=String(cfg.pvFps||3);fillSelects();$('sheet').classList.add('on')}
+function openSettings(){$('fTw').value=cfg.tw||'';$('fHost').value=cfg.host;$('fPort').value=cfg.port;$('fPass').value=cfg.pass;$('fAuto').checked=cfg.autoHide;$('fQ').value=cfg.pvQ;$('fFps').value=String(cfg.pvFps||3);fillSelects();$('sheet').classList.add('on')}
 $('gear').onclick=openSettings;
 $('fLink').onclick=async()=>{
   haptic();const p=new URLSearchParams();p.set('host',cfg.host);p.set('pass',cfg.pass);
@@ -1286,14 +1056,42 @@ $('fSave').onclick=()=>{
   const nh=$('fHost').value.trim(),np=$('fPort').value.trim()||'4455',npw=$('fPass').value.trim();
   const changed=cfg.host!==nh||cfg.port!==np||cfg.pass!==npw;
   cfg.host=nh;cfg.port=np;cfg.pass=npw;
-  cfg.entry=$('fEntry').value;cfg.autoHide=$('fAuto').checked;cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;$('pvFpsSel').value=String(cfg.pvFps);$('pvInfo').textContent=cfg.pvFps+' img/s';saveCfg();
+  cfg.entry=$('fEntry').value;cfg.autoHide=$('fAuto').checked;cfg.tw=$('fTw').value.trim().replace(/^.*twitch\.tv\//i,'').replace(/[/?#].*$/,'').trim();cfg.pvQ=$('fQ').value;cfg.pvFps=+$('fFps').value||3;$('pvFpsSel').value=String(cfg.pvFps);$('pvInfo').textContent=cfg.pvFps+' img/s';saveCfg();
   $('sheet').classList.remove('on');renderPanic();renderPvTag();renderAudio();renderRegie();S.frozen=0;S.lastThumb='';
   if(changed||!S.ok){S.retry=0;connect()}else toast('Réglages enregistrés');
 };
 
+/* ================= Retour son : lecteur Twitch ================= */
+let TW=null,twLoading=null;
+function loadTw(){
+  if(window.Twitch&&Twitch.Player)return Promise.resolve();if(twLoading)return twLoading;
+  twLoading=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://player.twitch.tv/js/embed/v1.js';s.onload=res;s.onerror=()=>{twLoading=null;rej(new Error('lecteur Twitch injoignable'))};document.head.appendChild(s)});
+  return twLoading;
+}
+function earState(t){$('earSt').textContent=t}
+function earQLabel(){$('earQ').classList.toggle('on',!!cfg.twAudio);$('earQ').textContent=cfg.twAudio?'Audio seul ✓':'Audio seul'}
+async function earOpen(){
+  if(!cfg.tw){toast('Indique d’abord ta chaîne Twitch');openSettings();setTimeout(()=>$('fTw').focus(),300);return}
+  $('earDock').classList.add('on');document.body.classList.add('earon');$('ear').classList.add('on');earQLabel();
+  earState('Connexion à '+cfg.tw+'…');
+  try{await loadTw()}catch(e){earState('Impossible de charger le lecteur Twitch ('+e.message+')');return}
+  if(TW&&TW._ch===cfg.tw){try{TW.setMuted(false);TW.play()}catch(e){}earState('🔊 Touche l’image si le son ne part pas');return}
+  $('twBox').innerHTML='';
+  TW=new Twitch.Player('twBox',{channel:cfg.tw,parent:[location.hostname||'localhost'],width:400,height:225,autoplay:true,muted:false});TW._ch=cfg.tw;
+  TW.addEventListener(Twitch.Player.READY,()=>{earState('Touche l’image pour lancer le son');if(cfg.twAudio)setTimeout(()=>{try{TW.setQuality('audio_only')}catch(e){}},1500)});
+  TW.addEventListener(Twitch.Player.PLAYING,()=>{earState('🔊 En écoute · quelques s de retard');if(cfg.twAudio)try{TW.setQuality('audio_only')}catch(e){}});
+  TW.addEventListener(Twitch.Player.PAUSE,()=>earState('En pause · touche l’image pour relancer'));
+  TW.addEventListener(Twitch.Player.OFFLINE,()=>earState(cfg.tw+' n’est pas en live'));
+  TW.addEventListener(Twitch.Player.ONLINE,()=>earState('Live démarré · touche l’image'));
+}
+function earClose(){if(TW){try{TW.pause()}catch(e){}}$('earDock').classList.remove('on');document.body.classList.remove('earon');$('ear').classList.remove('on')}
+$('ear').onclick=()=>{haptic();$('earDock').classList.contains('on')?earClose():earOpen()};
+$('earX').onclick=()=>{haptic();earClose()};
+$('earQ').onclick=()=>{haptic();cfg.twAudio=!cfg.twAudio;saveCfg();earQLabel();if(TW){try{TW.setQuality(cfg.twAudio?'audio_only':'auto')}catch(e){}}toast(cfg.twAudio?'Audio seul : moins de data':'Vidéo + audio')};
+
 /* ================= Onglets & cycle de vie ================= */
 document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>{
-  haptic();S.view=b.dataset.v;if(S.view==='spot')fillSpot();document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  haptic();S.view=b.dataset.v;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+S.view));{const top=$('main').getBoundingClientRect().top+window.scrollY-6;if(window.scrollY>top)window.scrollTo({top,behavior:'smooth'})}
 }));
 let wl=null;async function wake(){try{if('wakeLock'in navigator&&document.visibilityState==='visible')wl=await navigator.wakeLock.request('screen')}catch(e){}}
@@ -1308,7 +1106,7 @@ setInterval(()=>{
 $('clock').textContent=clockTxt();
 $('pvInfo').textContent=(cfg.pvFps||3)+' img/s';applyPvOn();renderPvTag();renderRegie();renderAudio();renderStats();renderLiveBadge();wake();
 requestAnimationFrame(meterFrame);pvLoop();frozenLoop();
-spHandleReturn().then(()=>{renderSpot();spLoop()});
+
 if(fromLink)setTimeout(()=>toast('Connexion configurée par le lien'),400);
 if(cfg.host)connect();else{pvMsg('Configure la connexion ⚙︎');openSettings()}
 </script>
