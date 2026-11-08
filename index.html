@@ -109,7 +109,7 @@ header.nopv .pvShow{display:block}
 /* ---------- Contenu ---------- */
 main{overflow-x:clip;padding:0 16px calc(env(safe-area-inset-bottom) + 92px)}
 .view{display:none}.view.on{display:block;animation:vin .24s ease}
-.view.on.fromR{animation:vinR .38s cubic-bezier(.22,.9,.24,1)}.view.on.fromL{animation:vinL .38s cubic-bezier(.22,.9,.24,1)}
+.view.on.fromR{animation:vinR .48s cubic-bezier(.22,.9,.24,1)}.view.on.fromL{animation:vinL .48s cubic-bezier(.22,.9,.24,1)}
 @keyframes vinR{from{opacity:0;transform:translateX(38px)}}@keyframes vinL{from{opacity:0;transform:translateX(-38px)}}
 @keyframes vin{from{opacity:0;transform:translateY(6px)}}
 .big{margin:18px 2px 12px;font-size:26px;font-weight:800;letter-spacing:-.035em;line-height:.98}
@@ -1101,7 +1101,7 @@ function indPos(b){return{x:b.offsetLeft,w:b.offsetWidth}}
 function placeInd(b,anim){const{x,w}=indPos(b);IND.style.width=w+'px';
   const to=`translateX(${x}px)`;
   if(anim&&IND._x!=null&&IND._x!==x&&IND.animate){const from=`translateX(${IND._x}px)`,mid=(IND._x+x)/2,dir=Math.sign(x-IND._x);
-    IND.animate([{transform:from+' scale(1,1)'},{transform:`translateX(${mid+dir*6}px) scale(1.28,.86)`,offset:.45},{transform:`translateX(${x+dir*3}px) scale(.96,1.05)`,offset:.78},{transform:to+' scale(1,1)'}],{duration:480,easing:'cubic-bezier(.3,.7,.2,1)'})}
+    IND.animate([{transform:from+' scale(1,1)'},{transform:`translateX(${mid+dir*6}px) scale(1.28,.86)`,offset:.45},{transform:`translateX(${x+dir*3}px) scale(.96,1.05)`,offset:.78},{transform:to+' scale(1,1)'}],{duration:640,easing:'cubic-bezier(.3,.7,.2,1)'})}
   IND.style.transform=to;IND._x=x}
 requestAnimationFrame(()=>placeInd(NAV.querySelector('button.on')||NAVB[0],false));
 window.addEventListener('resize',()=>placeInd(NAV.querySelector('button.on')||NAVB[0],false));
@@ -1111,7 +1111,7 @@ NAVB.forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.view').forEach(x=>{const on=x.id==='v-'+S.view;x.classList.remove('fromR','fromL');x.classList.toggle('on',on);if(on){void x.offsetWidth;x.classList.add(idx>prev?'fromR':'fromL')}});{const top=$('main').getBoundingClientRect().top+window.scrollY-6;if(window.scrollY>top)window.scrollTo({top,behavior:'smooth'})}
 }));
 /* Mise à jour auto : si une version plus récente est en ligne, on recharge (contourne le cache iOS) */
-const BUILD='1794135459';let updChk=0;
+const BUILD='1794135550';let updChk=0;
 async function checkUpdate(){
   if(BUILD.startsWith('__')||location.protocol==='file:'||Date.now()-updChk<20000)return;updChk=Date.now();
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/const BUILD='(\d+)'/);
