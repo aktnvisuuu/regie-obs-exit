@@ -1018,12 +1018,11 @@ const LUT_PFX='LUT · ';
 const isLutName=n=>String(n).startsWith(LUT_PFX);
 // packs proposés en un tap (les fichiers doivent être sur le serveur avec exactement ces noms)
 const LUT_PACKS=[
-  {t:'Tous les LUT',files:['EXIT-Chaud','EXIT-Froid','EXIT-Teal-Orange','EXIT-Noir-Blanc','EXIT-Vintage','EXIT-Punchy','EXIT-Nuit-Club','EXIT-Doux',
-    'Neutral','Tungsten','Ice-Blue','Green-Eyes','Utopia','Exterieur-01','Exterieur-02','Exterieur-03','Exterieur-04','Filmkid16']},
+  {t:'Tous les LUT',files:['Neutral','Tungsten','Ice-Blue','Green-Eyes','Utopia','Exterieur-01','Exterieur-02','Exterieur-03','Exterieur-04','Filmkid16']},
 ];
-const lutLabel=file=>file.replace(/\.(cube|png)$/i,'').replace(/^EXIT-/,'').replace(/[-_]+/g,' ').trim();
+const lutLabel=file=>file.replace(/\.(cube|png)$/i,'').replace(/[-_]+/g,' ').trim();
 const lutKey=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
-const LUT_SW={"Green Eyes":["#191d25","#be6f4d","#126197"],"Ice Blue":["#171d2a","#bc6c4b","#0b6c84"],"Neutral":["#1c1c2a","#bd6a4b","#0d6190"],"Tungsten":["#1a1c25","#c86b4f","#0c658c"],"Utopia":["#191c27","#bd613c","#0b698d"],"Exterieur 01":["#0b1115","#692013","#031650"],"Exterieur 02":["#030a0e","#46120b","#020e3d"],"Exterieur 03":["#0d1417","#7e2416","#041660"],"Exterieur 04":["#050b0f","#3c0f0a","#020d34"],"Filmkid16":["#283646","#db842e","#005da7"],"Chaud":["#38322e","#e6a26f","#4594d2"],"Doux":["#3d3d43","#c9a088","#548fc4"],"Froid":["#292f42","#ce9f8b","#388fe2"],"Noir-Blanc":["#202020","#b5b5b5","#858585"],"Nuit-Club":["#26173f","#f5a190","#2a8eff"],"Punchy":["#1d1d27","#f7a96f","#129bff"],"Teal-Orange":["#1a2435","#f1ac71","#2b9bee"],"Vintage":["#413f3c","#d2a685","#5c94bf"]};
+const LUT_SW={"Green Eyes":["#191d25","#be6f4d","#126197"],"Ice Blue":["#171d2a","#bc6c4b","#0b6c84"],"Neutral":["#1c1c2a","#bd6a4b","#0d6190"],"Tungsten":["#1a1c25","#c86b4f","#0c658c"],"Utopia":["#191c27","#bd613c","#0b698d"],"Exterieur 01":["#0b1115","#692013","#031650"],"Exterieur 02":["#030a0e","#46120b","#020e3d"],"Exterieur 03":["#0d1417","#7e2416","#041660"],"Exterieur 04":["#050b0f","#3c0f0a","#020d34"],"Filmkid16":["#283646","#db842e","#005da7"]};
 const LUT={src:'',list:[],dir:'',dragAt:0,busy:false};
 async function loadLuts(){
   LUT.src=entrySource();
