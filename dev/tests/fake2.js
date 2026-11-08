@@ -20,10 +20,10 @@ function shot(name,w){const c=document.createElement('canvas');c.width=w;c.heigh
  return c.toDataURL('image/jpeg',.6).replace('image/jpeg','image/jpg')}
 let bytes=0;const t0=Date.now();
 class F{constructor(){window.__ws=this;window.__br=window.__br??5200;window.__mode=window.__mode||'direct';setTimeout(()=>this.emit({op:0,d:{rpcVersion:1,authentication:{challenge:'ch4l',salt:'s4lt'}}}),50)}
- emit(o){this.onmessage&&this.onmessage({data:JSON.stringify(o)})}
+ emit(o){if(window.__zombie)return;this.onmessage&&this.onmessage({data:JSON.stringify(o)})}
  close(c){clearInterval(this.mt);this.onclose&&this.onclose({code:c||1000})}
  ev(t,d){setTimeout(()=>this.emit({op:5,d:{eventType:t,eventData:d}}),30)}
- send(m){const msg=JSON.parse(m);
+ send(m){const msg=JSON.parse(m);(window.__sent=window.__sent||[]).push([Date.now(),msg.d&&msg.d.requestType,msg.d&&msg.d.requestData&&msg.d.requestData.imageWidth]);if(window.__zombie)return;
   if(msg.op===1){if(msg.d.authentication!==EXPECTED){__log.push('AUTH FAIL');this.close(4009);return}__log.push('AUTH OK subs='+msg.d.eventSubscriptions);this.emit({op:2,d:{}});
     this.it=setInterval(()=>{const st={ingests:[{id:'xyz001',media_state:window.__br>150?'OBS_MEDIA_STATE_PLAYING':'OBS_MEDIA_STATE_OPENING',muted:false,name:'First Ingest',router_bitrate:Math.max(0,window.__br+Math.round((Math.random()-.5)*600)),router_rtt:48,type:'srt',volume:1}],auto_scene_switch_mode:'enabled_output_active',low_bitrate_trigger:1000,main_ingest_id:'xyz001',offline_bitrate_trigger:150,offline_exit_delay_seconds:1.5,output_status:{stream_status:true,stream_timecode:'01:02:03'}};
       if(window.__mode==='direct')this.emit({op:5,d:{eventType:'IRLTKStatusUpdate',eventIntent:1,eventData:st}});
@@ -68,7 +68,7 @@ class F{constructor(){window.__ws=this;window.__br=window.__br??5200;window.__mo
   else if(t==='GetCurrentSceneTransition')r={transitionName:trCur,transitionDuration:trCur==='Coupure'?null:trDur,transitionFixed:trCur==='Coupure'};
   else if(t==='SetCurrentSceneTransition'){trCur=d.transitionName;this.ev('CurrentSceneTransitionChanged',{transitionName:trCur})}
   else if(t==='SetCurrentSceneTransitionDuration'){trDur=d.transitionDuration;this.ev('CurrentSceneTransitionDurationChanged',{transitionDuration:trDur})}
-  else if(t==='GetStreamStatus'){bytes+=1500000;r={outputActive:true,outputReconnecting:false,outputDuration:Date.now()-t0+3723000,outputBytes:bytes,outputSkippedFrames:12,outputTotalFrames:98000}}
+  else if(t==='GetStreamStatus'){bytes+=1500000;window.__tot=(window.__tot||98000)+100;window.__sk=(window.__sk||12)+(window.__skipRate||0);r={outputActive:true,outputReconnecting:false,outputDuration:Date.now()-t0+3723000,outputBytes:bytes,outputSkippedFrames:window.__sk,outputTotalFrames:window.__tot}}
   else if(t==='GetStats')r={cpuUsage:34.2,activeFps:50,renderSkippedFrames:0};
   else if(t==='SetCurrentProgramScene'){program=d.sceneName;this.ev('CurrentProgramSceneChanged',{sceneName:program})}
   else if(t==='SetSceneItemEnabled'){(items[d.sceneName]||[]).forEach(i=>{if(i.sceneItemId===d.sceneItemId)i.sceneItemEnabled=d.sceneItemEnabled});this.ev('SceneItemEnableStateChanged',d)}

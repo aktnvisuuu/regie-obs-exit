@@ -13,15 +13,23 @@ Cette version (commit `9a6c97c`) est **la référence**. Toute nouvelle modif pa
   - **Son** : « Micros » (entrée LiveU) + autres pistes, curseurs, mute, vumètres.
 - Feuilles (⚙︎ et •••) qui montent en glissant, fermeture en tirant vers le bas.
 - Mise à jour auto : la page compare son `BUILD` avec celui en ligne et se recharge si plus récent.
+
+## Fiabilité en presta (ajouté le 8 nov.)
+- **Commandes prioritaires** : après chaque toucher (`cmd()`), aucune capture d'aperçu ne part pendant 0,7 s.
+- **Aperçu adaptatif** : si les captures ralentissent (réseau saturé), l'aperçu passe tout seul en « allégé » (480 px, 5 img/s max) puis « minimum » (320 px, 1 img/s), et remonte quand ça va mieux.
+- **Chien de garde** : si OBS n'envoie plus rien depuis 6 s (connexion fantôme après veille / changement de réseau), ou si la connexion reste bloquée 8 s, reconnexion immédiate. Vérif au retour dans l'app et au retour du réseau.
+- **Hors réseau** : `sw.js` garde la page sur le téléphone (réseau d'abord 3 s, sinon version gardée). Les vérifs de mise à jour passent toujours par le réseau.
+- **Alertes** (bandeau + vibration 3 coups, rappel toutes les 20 s, seulement en live, option « Alertes qui vibrent » dans ⚙︎) : débit LiveU faible / plus de signal, images perdues ≥ 2 % sur 10 s, CPU ≥ 90 %, micros en MUTE, micros silencieux 8 s, image LiveU figée, stream qui se reconnecte. Sur iPhone la vibration est légère (iOS ne permet qu'un petit retour haptique aux pages web).
 - Volontairement **retiré** : Spotify, retour son Twitch 🎧, onglets Lieux/Musiques (sources toujours dans OBS mais cachées de l'app), choix « Entrée LiveU », heure, source d'entrée, textes d'aide, start/stop stream, bouton panique.
 
 ## Fichiers
 - `index.html` : version en ligne (construite, ne pas éditer à la main).
-- `dev/index.src.html` : **source à modifier** (contient `__LOCK__` et `__BUILD__`).
+- `dev/index.src.html` : **source à modifier** (contient `__LOCK__` et `__BUILD__`). Le script est découpé en 17 sections numérotées, avec un sommaire en tête.
 - `dev/lock.json` : identifiants OBS chiffrés (public sans risque sans le code).
 - `dev/lock.mjs` : rechiffrer si le mot de passe OBS change : `node dev/lock.mjs <code> wss://<hôte>:4456 <motdepasse>` > `dev/lock.json`.
 - `dev/build.py` : `python3 dev/build.py` (prod) / `python3 dev/build.py test` (test).
-- `dev/tests/` : faux OBS (`fake2.js`, `ingestinit.js`) + tests Playwright (`cd dev/tests && python3 test16.py`).
+- `sw.js` : garde la page pour l'ouverture sans réseau.
+- `dev/tests/` : faux OBS (`fake2.js`, `ingestinit.js`) + tests Playwright : `python3 dev/build.py test && cd dev/tests && for t in test1[6-9].py test20.py; do python3 $t; done` (`test21.py` demande `python3 -m http.server 8765` lancé dans un dossier avec index.html de test + sw.js).
 
 ## Règles
 - Le mot de passe OBS change si on clique « Generate Password » sur irl.run → il faut rechiffrer `dev/lock.json` sinon plus personne n'entre.
