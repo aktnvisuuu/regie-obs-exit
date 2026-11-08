@@ -1,0 +1,10 @@
+(()=>{const L=['Ancien QG de Polar Music','Nostalgipalatset - disquaire','Ancien Atlantis Studio','Ancien Polar Studios','Evert Taubes Terrass - photo culte et juste pour le plaisir','Ancien quartier et appartement de Anni-Frid et Benny','Opéra royal de Stockholm','Mono Music AB - studio personnel de Benny','ABBA Le Musée'];
+const M=['Min egen stad','Sunny Girl','Jag var så kär','Fiesta Mexicana','Aldrig mer','Hej gamle man','People Need Love','Ring Ring','Another Town, Another Train','Waterloo','Hasta Mañana','Honey, Honey','Waterloo (Version Française)','Mamma Mia','SOS','I Do, I Do, I Do, I Do, I Do','Dancing Queen','Knowing Me, Knowing You','Money, Money, Money','Fernando','Eagle','Take A Chance On Me','Voulez-Vous','Chiquitita','Gimme! Gimme! Gimme!','Al Andar','Super Trouper','The Winner Takes It All','Slipping Through My Fingers','Our Last Summer','I Have A Dream','When You Danced With Me','Tropical Loveland','One Man, One Woman'];
+const wait=setInterval(()=>{if(!window.__items)return;clearInterval(wait);
+ const it=[];let id=1;
+ it.push({sceneItemId:id++,sourceName:'Media',sceneItemEnabled:false,inputKind:'ffmpeg_source',sourceType:'OBS_SOURCE_TYPE_INPUT'});
+ it.push({sceneItemId:id++,sourceName:'Ingest Player',sceneItemEnabled:true,inputKind:'irltk_ingest_source',sourceType:'OBS_SOURCE_TYPE_INPUT'});
+ M.slice().reverse().forEach((n,k)=>it.push({sceneItemId:id++,sourceName:'[Musiques] '+String(M.length-k).padStart(2,'0')+' · '+n,sceneItemEnabled:false,inputKind:'ffmpeg_source',sourceType:'OBS_SOURCE_TYPE_INPUT'}));
+ L.slice().reverse().forEach((n,k)=>it.push({sceneItemId:id++,sourceName:'[Lieux] '+String(L.length-k).padStart(2,'0')+' · '+n,sceneItemEnabled:false,inputKind:'ffmpeg_source',sourceType:'OBS_SOURCE_TYPE_INPUT'}));
+ it.forEach((x,i)=>x.sceneItemIndex=i);
+ window.__items['Ingest']=it;window.__scenes.push('Ingest');window.__extraInputs=it.filter(x=>x.inputKind).map(x=>[x.sourceName,x.inputKind])},1)})();

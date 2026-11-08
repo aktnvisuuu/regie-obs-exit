@@ -1111,7 +1111,7 @@ NAVB.forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.view').forEach(x=>{const on=x.id==='v-'+S.view;x.classList.remove('fromR','fromL');x.classList.toggle('on',on);if(on){void x.offsetWidth;x.classList.add(idx>prev?'fromR':'fromL')}});{const top=$('main').getBoundingClientRect().top+window.scrollY-6;if(window.scrollY>top)window.scrollTo({top,behavior:'smooth'})}
 }));
 /* Mise à jour auto : si une version plus récente est en ligne, on recharge (contourne le cache iOS) */
-const BUILD='1794135550';let updChk=0;
+const BUILD='1794138214';let updChk=0;
 async function checkUpdate(){
   if(BUILD.startsWith('__')||location.protocol==='file:'||Date.now()-updChk<20000)return;updChk=Date.now();
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/const BUILD='(\d+)'/);
