@@ -258,6 +258,7 @@ dialog .row{justify-content:flex-end}
   <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
   <symbol id="i-clip" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
@@ -306,7 +307,9 @@ const DemoAPI=(()=>{
     enhanced:'',
     system:{lowKbps:1000,offKbps:150,offExitDelay:1.5,mode:'streaming',rttOn:true,rttMax:1500},
     video:{base:'1920x1080',output:'1920x1080',fps:'50',bitrate:6000,encoder:'nvenc'},
-    access:{obsPass:'demoObsPass_9f8a7b',obsUrl:'wss://demo.exit-toolkit.example/obs'}
+    ws:{host:'demo.exit-toolkit.example',port:4455,wssPort:443,path:'/obs',pass:'demoObsPass_9f8a7b'},
+    bot:{enabled:false,channels:'',alerts:true},
+    share:{token:'exitshare_demo_4Kq9Zp2x'}
   };
   let files=[['VF.mp4',1.06e9],['Bandeau 10.webm',115e6],['Logos live V2.webm',6e6],['STARTING_V3.webm',19e6],['WAITING_V3.webm',19e6],['END_V3.webm',19e6],['habillage 04.webm',18e6],['Conversion-709.cube',983e3],['Neutral.cube',112e3],['Tungsten.cube',112e3],['Ice-Blue.cube',112e3],['Green-Eyes.cube',112e3],['Utopia.cube',112e3],['Exterieur-01.cube',979e3],['Filmkid16.cube',7e6],['marrant_club.webp',24e3]].map(([name,b],i)=>({name,size:b,date:Date.now()-i*86400e3*2}));
   let collections=[{name:'default-sc',active:true},{name:'Grünt Festival',active:false}];
@@ -382,8 +385,8 @@ function renderLogin(){
 /* ---------- Coquille : barre du haut + routes ---------- */
 const ROUTES={
   dashboard:{t:'Dashboard',r:renderDash},
-  'obs/remote':{t:'OBS à distance',g:'obs',r:renderRemote},'obs/fichiers':{t:'Fichiers',g:'obs',r:renderFiles},'obs/collections':{t:'Collections de scènes',g:'obs',r:renderCollections},
-  ingests:{t:'Ingests',g:'set',r:renderIngests},destinations:{t:'Destinations',g:'set',r:renderDestinations},systeme:{t:'Système',g:'set',r:renderSystem},video:{t:'Vidéo',g:'set',r:renderVideo},acces:{t:'Accès',g:'set',r:renderAccess},
+  'obs/remote':{t:'Remote',g:'obs',r:renderRemote},'obs/fichiers':{t:'Fichiers',g:'obs',r:renderFiles},'obs/collections':{t:'Collections de scènes',g:'obs',r:renderCollections},
+  ingests:{t:'Ingests',g:'set',r:renderIngests},destinations:{t:'Destinations',g:'set',r:renderDestinations},systeme:{t:'Système',g:'set',r:renderSystem},video:{t:'Vidéo',g:'set',r:renderVideo},'mot-de-passe':{t:'Mot de passe',g:'set',r:renderPassword},
 };
 const route=()=>{const r=location.hash.replace(/^#\/?/,'');return ROUTES[r]?r:'dashboard'};
 function go(r){location.hash='#/'+r}
@@ -396,17 +399,17 @@ function shell(){
       <div class="it"><a class="lnk" data-r="dashboard" href="#/dashboard">Dashboard</a></div>
       <div class="it" data-menu="obs"><button class="lnk" data-g="obs" aria-haspopup="true">OBS ${ic('down')}</button>
         <div class="menu" role="menu">
-          <a href="#/obs/remote" data-r="obs/remote">${ic('monitor')}<span>OBS à distance<small>Le vrai OBS dans le navigateur</small></span></a>
+          <a href="#/obs/collections" data-r="obs/collections">${ic('layers')}<span>Collections de scènes<small>Un jeu de scènes par créateur</small></span></a>
+          <a href="#/obs/remote" data-r="obs/remote">${ic('monitor')}<span>Remote<small>Le vrai OBS dans le navigateur</small></span></a>
           <a href="#/obs/fichiers" data-r="obs/fichiers">${ic('folder')}<span>Fichiers<small>Vidéos, images, LUT du serveur</small></span></a>
-          <a href="#/obs/collections" data-r="obs/collections">${ic('layers')}<span>Collections de scènes</span></a>
         </div></div>
       <div class="it" data-menu="set"><button class="lnk" data-g="set" aria-haspopup="true">Réglages ${ic('down')}</button>
         <div class="menu" role="menu">
           <a href="#/ingests" data-r="ingests">${ic('radio')}<span>Ingests<small>Brancher le LiveU, un téléphone…</small></span></a>
           <a href="#/destinations" data-r="destinations">${ic('send')}<span>Destinations<small>Twitch, RTMP, SRT</small></span></a>
-          <a href="#/systeme" data-r="systeme">${ic('bot')}<span>Système<small>Bascule auto, seuils</small></span></a>
+          <a href="#/systeme" data-r="systeme">${ic('bot')}<span>Système<small>Bascule auto, bot Twitch, obs-websocket</small></span></a>
           <a href="#/video" data-r="video">${ic('sliders')}<span>Vidéo<small>Résolution, images/s, débit</small></span></a>
-          <a href="#/acces" data-r="acces">${ic('key')}<span>Accès<small>Mots de passe, Régie</small></span></a>
+          <a href="#/mot-de-passe" data-r="mot-de-passe">${ic('key')}<span>Mot de passe<small>Mot de passe de l'équipe</small></span></a>
         </div></div>
     </nav>
     <div class="right">
@@ -625,42 +628,53 @@ function renderIngests(m){
       <div class="tabs" role="tablist">${PROTO.map(([id,l,soon])=>`<button role="tab" class="${id===ingTab?'on':''}" data-tab="${id}">${l}${soon?'<span class="soon">BIENTÔT</span>':''}</button>`).join('')}</div>
       ${body}
       <div class="row" style="margin-top:18px"><button class="btn sm ghost" id="regen">${ic('refresh')}Régénérer la clé</button><span class="note" style="margin:0">L'ancienne clé ne marchera plus : il faudra mettre à jour le LiveU.</span></div>
-    </section></div>`;
+    </section>
+    <section class="card"><div class="ch"><h2>${ic('link')} Partage d'ingest</h2></div>
+      <p class="note" style="margin:0 0 14px">Pour qu'un autre cadreur envoie sa caméra sur notre serveur sans connaître nos clés. Un jeton ne sert qu'une fois, puis il est remplacé.</p>
+      ${secretField('sh1',API.settings.share.token,'Jeton de partage')}
+      <button class="btn sm ghost" id="shR">${ic('refresh')}Nouveau jeton</button></section></div>`;
   m.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ingTab=b.dataset.tab;renderIngests(m)});
   bindSecrets(m);
+  $('#shR').onclick=()=>{API.settings.share.token='exitshare_'+Math.random().toString(36).slice(2,12);toast('Nouveau jeton créé');renderIngests(m)};
   $('#regen').onclick=async()=>{if(API.state.streaming){toast('Impossible pendant un live',true);return}
     if(await confirmBox('Régénérer la clé ?','La caméra devra être reconfigurée avec la nouvelle adresse.','Régénérer'))API.regenKey(g.id).then(()=>{toast('Nouvelle clé créée');renderIngests(m)})};
 }
-let newDest=null;
+let newDest=null,editDest=null;
 function renderDestinations(m){
-  const S=API.settings,list=S.destinations;
+  const S=API.settings,list=S.destinations,ed=editDest&&list.find(d=>d.id===editDest);
   const form=newDest?`<form class="form" id="nf">
     <div class="field"><label for="nN">Nom</label><input class="inp" id="nN" required placeholder="${newDest==='twitch'?'Nom de la chaîne':'Nom de la destination'}"></div>
     ${newDest==='twitch'?`<div class="field"><label for="nK">Clé de stream Twitch</label><input class="inp" id="nK" type="password" required autocomplete="off" placeholder="live_…"><div class="help">Twitch → Tableau de bord créateur → Paramètres → Stream → Clé de stream principale. Le serveur Twitch le plus proche est choisi tout seul.</div></div>`
     :newDest==='rtmp'?`<div class="field"><label for="nS">URL du serveur</label><input class="inp" id="nS" required placeholder="rtmp://…"></div><div class="field"><label for="nK">Clé de stream</label><input class="inp" id="nK" type="password" required autocomplete="off"></div>`
-    :`<div class="field"><label for="nS">URL et port</label><input class="inp" id="nS" required placeholder="srt://serveur:port"></div><div class="field"><label for="nK">Stream ID</label><input class="inp" id="nK" type="password" autocomplete="off"></div><div class="field"><label for="nP">Passphrase</label><input class="inp" id="nP" type="password" autocomplete="off"></div>`}
-    <div class="row"><button class="btn g" type="submit">${ic('check')}Ajouter</button><button class="btn ghost" type="button" id="nC">Annuler</button></div></form>`:'';
-  const tl={twitch:'Twitch',rtmp:'RTMP perso',srt:'SRT perso'};
+    :newDest==='pull'?`<div class="help" style="margin:-6px 0 16px">Le serveur ne pousse rien : c'est un autre service qui vient chercher le live à une adresse qu'on lui donne (elle apparaît une fois la destination ajoutée).</div><input type="hidden" id="nK" value="">`
+    :`<div class="field"><label for="nS">URL et port</label><input class="inp" id="nS" required placeholder="srt://serveur:port"></div><div class="field"><label for="nK">Stream ID</label><input class="inp" id="nK" type="password" autocomplete="off"></div><div class="field"><label for="nP">Passphrase</label><input class="inp" id="nP" type="password" autocomplete="off"></div><div class="field"><label for="nL">Latence</label><div class="unit"><input class="inp num" id="nL" type="number" value="2000" min="20" step="100"><span>ms</span></div></div>`}
+    <div class="row"><button class="btn g" type="submit">${ic('check')}${editDest?'Enregistrer':'Ajouter'}</button><button class="btn ghost" type="button" id="nC">Annuler</button></div></form>`:'';
+  const tl={twitch:'Twitch',rtmp:'RTMP perso',srt:'SRT perso',pull:'RTMP Pulldown'};
   m.innerHTML=`<div class="page"><h1>Destinations</h1><p class="lead">Où part le live. Plusieurs destinations actives en même temps = multistream.</p>
     <div class="grid2" style="grid-template-columns:minmax(260px,.42fr) 1fr;max-width:1180px">
-      <section class="card"><div class="ch"><h2>Nouvelle destination</h2></div><div class="newd">
+      <section class="card"><div class="ch"><h2>${ed?'Modifier « '+esc(ed.name)+' »':'Nouvelle destination'}</h2></div><div class="newd">
         <button class="btn" data-new="twitch" style="background:#9146FF">${ic('twitch')}Twitch</button>
         <button class="btn" data-new="rtmp">${ic('send')}RTMP perso</button>
-        <button class="btn" data-new="srt">${ic('send')}SRT perso</button></div>${form}</section>
+        <button class="btn" data-new="srt">${ic('send')}SRT perso</button>
+        <button class="btn" data-new="pull">${ic('download')}RTMP Pulldown</button></div>${form}</section>
       <div class="stack">
       <section class="card"><div class="ch"><h2>Destinations</h2><span class="tag">${list.filter(d=>d.enabled).length} active${list.filter(d=>d.enabled).length>1?'s':''}</span></div>
         <div class="list">${list.length?list.map(d=>`<div class="dst"><div class="lg ${d.type==='twitch'?'tw':''}">${ic(d.type==='twitch'?'twitch':'send')}</div>
-          <div class="tx"><b>${esc(d.name)}</b><small>${tl[d.type]}${d.type==='twitch'?' · serveur automatique':''} · clé ••••${esc(String(d.key).slice(-4))}</small></div>
+          <div class="tx"><b>${esc(d.name)}</b><small>${tl[d.type]}${d.type==='twitch'?' · serveur automatique':''}${d.type==='pull'?' · rtmp://'+esc(S.ingests[0].host)+'/pull/'+esc(d.id):' · clé ••••'+esc(String(d.key).slice(-4))}</small></div>
           <label class="switch" title="${d.enabled?'Active':'Inactive'}"><input type="checkbox" data-en="${d.id}" ${d.enabled?'checked':''} aria-label="Activer ${esc(d.name)}"><i></i></label>
-          <button class="ib r" data-del="${d.id}" title="Supprimer" aria-label="Supprimer ${esc(d.name)}">${ic('trash')}</button></div>`).join(''):'<div class="empty">Aucune destination. Ajoute ta chaîne Twitch à gauche.</div>'}</div></section>
+          <button class="ib" data-edit="${d.id}" title="Modifier" aria-label="Modifier ${esc(d.name)}">${ic('edit')}</button><button class="ib r" data-del="${d.id}" title="Supprimer" aria-label="Supprimer ${esc(d.name)}">${ic('trash')}</button></div>`).join(''):'<div class="empty">Aucune destination. Ajoute ta chaîne Twitch à gauche.</div>'}</div></section>
       <section class="card"><div class="ch"><h2>Enhanced Broadcast</h2></div>
         <div class="field"><label for="eb">Destination Twitch</label><select class="inp" id="eb"><option value="">(aucune)</option>${list.filter(d=>d.type==='twitch'&&d.enabled).map(d=>`<option value="${d.id}" ${S.enhanced===d.id?'selected':''}>${esc(d.name)}</option>`).join('')}</select>
         <div class="help">Le transcodage Twitch (choix de qualité pour les spectateurs) même sans être partenaire. Une seule destination à la fois.</div></div>
         <button class="btn sm g" id="ebS">Enregistrer</button></section></div>
     </div></div>`;
-  m.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>{newDest=b.dataset.new;renderDestinations(m);$('#nN').focus()});
-  const nf=$('#nf');if(nf){$('#nC').onclick=()=>{newDest=null;renderDestinations(m)};
-    nf.onsubmit=e=>{e.preventDefault();API.addDest({type:newDest,name:$('#nN').value.trim(),server:$('#nS')?$('#nS').value.trim():'auto',key:$('#nK').value.trim()}).then(()=>{toast('Destination ajoutée');newDest=null;renderDestinations(m)})}}
+  m.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>{newDest=b.dataset.new;editDest=null;renderDestinations(m);$('#nN').focus()});
+  m.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{const d=list.find(x=>x.id===b.dataset.edit);
+    if(d.enabled&&API.state.streaming){toast('Modifie cette destination hors live',true);return}
+    newDest=d.type;editDest=d.id;renderDestinations(m);$('#nN').value=d.name;if($('#nS')&&d.server!=='auto')$('#nS').value=d.server;$('#nK').value=d.key||'';$('#nN').focus()});
+  const nf=$('#nf');if(nf){$('#nC').onclick=()=>{newDest=null;editDest=null;renderDestinations(m)};
+    nf.onsubmit=e=>{e.preventDefault();const d={type:newDest,name:$('#nN').value.trim(),server:$('#nS')?$('#nS').value.trim():'auto',key:$('#nK').value.trim()};
+      (editDest?API.setDest(editDest,d):API.addDest(d)).then(()=>{toast(editDest?'Destination modifiée':'Destination ajoutée');newDest=null;editDest=null;renderDestinations(m)})}}
   m.querySelectorAll('[data-en]').forEach(c=>c.onchange=async()=>{
     if(API.state.streaming){c.checked=!c.checked;toast('Change les destinations hors live',true);return}
     await API.setDest(c.dataset.en,{enabled:c.checked});renderDestinations(m)});
@@ -671,7 +685,7 @@ function renderDestinations(m){
 }
 function renderSystem(m){
   const s=API.settings.system;
-  m.innerHTML=`<div class="page stack"><div><h1>Système</h1><p class="lead">La bascule automatique entre les scènes Ingest, Ingest Low-bitrate et Ingest Offline selon le débit de la caméra.</p></div>
+  m.innerHTML=`<div class="page stack"><div><h1>Système</h1><p class="lead">La bascule automatique selon le débit, le bot Twitch et l'accès pour piloter OBS à distance.</p></div>
     <form class="card" id="sf"><div class="ch"><h2>${ic('bot')} Bascule automatique</h2></div>
       <div class="field"><label>Mode</label><div class="seg" role="radiogroup">${[['disabled','Désactivée'],['streaming','Quand on streame'],['always','Toujours']].map(([v,l])=>`<button type="button" role="radio" aria-checked="${s.mode===v}" class="${s.mode===v?'on':''}" data-mode="${v}">${l}</button>`).join('')}</div>
         <div class="help">« Quand on streame » : la bascule ne marche que pendant le live. Elle se met en pause quand tu choisis une autre scène à la main.</div></div>
@@ -682,9 +696,24 @@ function renderSystem(m){
         <div class="field"><label for="sRtt">RTT max (SRT)</label><div class="row" style="flex-wrap:nowrap"><label class="switch"><input type="checkbox" id="sRttOn" ${s.rttOn?'checked':''} aria-label="Tenir compte du RTT"><i></i></label><div class="unit" style="flex:1"><input class="inp num" id="sRtt" type="number" min="100" step="100" value="${s.rttMax}"><span>ms</span></div></div><div class="help">Au-dessus : Low-bitrate, même si le débit est bon (IRLToolkit ne le fait pas).</div></div>
       </div>
       <button class="btn g" type="submit">${ic('check')}Enregistrer</button></form>
+    <form class="card" id="bf"><div class="ch"><h2>${ic('twitch')} Bot Twitch</h2></div>
+      <div class="line"><div class="tx"><b>Activé</b><small>Commandes dans le chat et messages d'état.</small></div><label class="switch"><input type="checkbox" id="bE" ${API.settings.bot.enabled?'checked':''} aria-label="Activer le bot Twitch"><i></i></label></div>
+      <div class="field" style="margin-top:6px"><label for="bC">Chaînes Twitch</label><input class="inp" id="bC" value="${esc(API.settings.bot.channels)}" placeholder="marrant_club, grimkujow"><div class="help">Séparées par des virgules.</div></div>
+      <div class="line"><div class="tx"><b>Annoncer les changements de scène dans le chat</b><small>Seulement pendant le live (« Connexion faible, on revient… »).</small></div><label class="switch"><input type="checkbox" id="bA" ${API.settings.bot.alerts?'checked':''} aria-label="Messages de changement de scène"><i></i></label></div>
+      <button class="btn g" type="submit">${ic('check')}Enregistrer</button></form>
+    <section class="card"><div class="ch"><h2>${ic('monitor')} Accès obs-websocket</h2><span class="tag">Régie EXIT, Stream Deck…</span></div>
+      <p class="note" style="margin:0 0 14px">Ce qu'il faut pour piloter OBS à distance, par exemple depuis la Régie iPhone.</p>
+      <div class="grid2">${secretField('w1',API.settings.ws.host,'Hôte (v5)')}
+        <div class="field"><label>Ports</label><div class="row" style="flex-wrap:nowrap"><div class="unit" style="flex:1"><input class="inp num" value="${API.settings.ws.port}" readonly aria-label="Port"><span>port</span></div><div class="unit" style="flex:1"><input class="inp num" value="${API.settings.ws.wssPort}" readonly aria-label="Port WSS"><span>WSS</span></div></div></div></div>
+      ${secretField('w2','wss://'+API.settings.ws.host+API.settings.ws.path,'Adresse complète pour la Régie')}
+      ${secretField('w3',API.settings.ws.pass,'Mot de passe')}
+      <div class="row"><button class="btn sm ghost" id="wR">${ic('refresh')}Générer un nouveau mot de passe</button><span class="note" style="margin:0">Appliqué au prochain redémarrage du serveur. Il faudra mettre à jour la Régie.</span></div></section>
     <section class="card"><div class="ch"><h2>${ic('power')} Arrêt automatique</h2></div>
       <div class="line"><div class="tx"><b>Après 15 minutes d'inactivité</b><small>Sans live et sans personne connectée (site, Régie ou OBS à distance). Alerte « Garder allumé » à 12 minutes.</small></div><span class="tag g">Actif</span></div>
       <div class="line"><div class="tx"><b>Jamais pendant un live</b><small>Ni pendant une reconnexion du stream. En cas de doute, le serveur reste allumé.</small></div><span class="tag g">Toujours</span></div></section></div>`;
+  bindSecrets(m);
+  $('#bf').onsubmit=e=>{e.preventDefault();Object.assign(API.settings.bot,{enabled:$('#bE').checked,channels:$('#bC').value.trim(),alerts:$('#bA').checked});toast('Bot Twitch enregistré')};
+  $('#wR').onclick=async()=>{if(await confirmBox('Nouveau mot de passe obs-websocket ?','La Régie iPhone ne pourra plus se connecter tant qu’elle n’est pas mise à jour.','Générer')){API.settings.ws.pass='exitObs_'+Math.random().toString(36).slice(2,12);renderSystem(m);toast('Nouveau mot de passe créé')}};
   let mode=s.mode;
   m.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;m.querySelectorAll('[data-mode]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b)})});
   $('#sf').onsubmit=e=>{e.preventDefault();const low=+$('#sLow').value,off=+$('#sOff').value;
@@ -705,27 +734,22 @@ function renderVideo(m){
   const lock=()=>{const l=API.state.streaming;['vB','vO','vF','vE'].forEach(id=>$('#'+id).disabled=l)};lock();
   $('#vf').onsubmit=e=>{e.preventDefault();API.save('video',{base:$('#vB').value,output:$('#vO').value,fps:$('#vF').value,bitrate:+$('#vR').value,encoder:$('#vE').value}).then(()=>toast('Réglages vidéo enregistrés'))};
 }
-function renderAccess(m){
-  const a=API.settings.access;
-  m.innerHTML=`<div class="page stack"><div><h1>Accès</h1><p class="lead">Le mot de passe de l'équipe et la connexion de la Régie iPhone.</p></div>
-    <form class="card" id="pf"><div class="ch"><h2>${ic('key')} Mot de passe de l'équipe</h2></div>
-      <div class="grid2"><div class="field"><label for="p1">Nouveau mot de passe</label><input class="inp" id="p1" type="password" autocomplete="new-password" minlength="6" required></div>
-      <div class="field"><label for="p2">Confirmer</label><input class="inp" id="p2" type="password" autocomplete="new-password" required></div></div>
-      <button class="btn g" type="submit">${ic('check')}Changer le mot de passe</button></form>
-    <section class="card"><div class="ch"><h2>${ic('monitor')} Régie iPhone</h2></div>
-      ${secretField('a1',a.obsUrl,'Adresse')}${secretField('a2',a.obsPass,'Mot de passe OBS')}
-      <div class="row"><button class="btn sm ghost" id="aR">${ic('refresh')}Régénérer le mot de passe OBS</button><span class="note" style="margin:0">Il faudra ensuite mettre à jour la Régie.</span></div></section></div>`;
-  bindSecrets(m);
+function renderPassword(m){
+  m.innerHTML=`<div class="page stack" style="max-width:640px"><div><h1>Mot de passe</h1><p class="lead">Le mot de passe que toute l'équipe utilise pour entrer dans EXIT Toolkit.</p></div>
+    <form class="card" id="pf">
+      <div class="field"><label for="p0">Mot de passe actuel</label><input class="inp" id="p0" type="password" autocomplete="current-password" required></div>
+      <div class="field"><label for="p1">Nouveau mot de passe</label><input class="inp" id="p1" type="password" autocomplete="new-password" minlength="6" required><div class="help">6 caractères minimum. Donne-le à l'équipe de vive voix, pas dans un groupe public.</div></div>
+      <div class="field"><label for="p2">Confirmer</label><input class="inp" id="p2" type="password" autocomplete="new-password" required></div>
+      <button class="btn g" type="submit">${ic('check')}Changer le mot de passe</button></form></div>`;
   $('#pf').onsubmit=e=>{e.preventDefault();if($('#p1').value!==$('#p2').value){toast('Les deux mots de passe sont différents',true);return}toast(API.demo?'Mode démo : rien n’est changé':'Mot de passe changé');e.target.reset()};
-  $('#aR').onclick=async()=>{if(await confirmBox('Régénérer le mot de passe OBS ?','La Régie iPhone ne pourra plus se connecter tant qu’elle n’est pas mise à jour.','Régénérer')){a.obsPass='demoObs_'+Math.random().toString(36).slice(2,10);renderAccess(m);toast('Nouveau mot de passe créé')}};
 }
 
 /* ---------- OBS ---------- */
 function renderRemote(m){
   const draw=()=>{const u=API.remoteUrl();
-    if(!u){m.innerHTML=`<div class="page"><h1>OBS à distance</h1><p class="lead">Le vrai OBS du serveur, avec toutes ses fenêtres, la souris et le clavier.</p>${offCard('OBS')}</div>`;bindPower(m);return}
+    if(!u){m.innerHTML=`<div class="page"><h1>Remote</h1><p class="lead">Le vrai OBS du serveur, avec toutes ses fenêtres, la souris et le clavier.</p>${offCard('OBS')}</div>`;bindPower(m);return}
     if(m.querySelector('.remote'))return;
-    m.innerHTML=`<div class="page"><div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h1>OBS à distance</h1><p class="lead" style="margin:0">Le vrai OBS du serveur, rien n'est verrouillé.</p></div>
+    m.innerHTML=`<div class="page"><div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h1>Remote</h1><p class="lead" style="margin:0">Le vrai OBS du serveur, rien n'est verrouillé.</p></div>
       <div class="row"><button class="btn sm ghost" id="rC">${ic('clip')}Coller du texte</button><button class="btn sm ghost" id="rR">${ic('refresh')}Recharger</button><button class="btn sm" id="rF">${ic('max')}Plein écran</button></div></div>
       <div class="remote" id="rBox"><img src="${u}" alt="Écran d'OBS sur le serveur">${API.demo?'<span class="demo" style="position:absolute;left:14px;bottom:14px">DÉMO · capture d’OBS</span>':''}</div></div>`;
     $('#rF').onclick=()=>$('#rBox').requestFullscreen&&$('#rBox').requestFullscreen();

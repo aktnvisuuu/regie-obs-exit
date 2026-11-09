@@ -37,7 +37,7 @@ async def main():
     await pg.click('#dStop');await pg.wait_for_timeout(300);await pg.click('#dlgOk');await pg.wait_for_timeout(500)
     ok(not await pg.evaluate("API.state.streaming"),'Confirmer → stream arrêté')
     # pages
-    for r,t,f in [('ingests','Ingests','04-ingests'),('destinations','Destinations','05-destinations'),('systeme','Système','06-systeme'),('video','Vidéo','07-video'),('acces','Accès','08-acces'),('obs/remote','OBS à distance','09-remote'),('obs/fichiers','Fichiers','10-fichiers'),('obs/collections','Collections','11-collections')]:
+    for r,t,f in [('ingests','Ingests','04-ingests'),('destinations','Destinations','05-destinations'),('systeme','Système','06-systeme'),('video','Vidéo','07-video'),('mot-de-passe','Mot de passe','08-mdp'),('obs/remote','Remote','09-remote'),('obs/fichiers','Fichiers','10-fichiers'),('obs/collections','Collections','11-collections')]:
       await pg.evaluate(f"go('{r}')");await pg.wait_for_timeout(700)
       ok(t in await pg.inner_text('main h1'),'Page '+t);await pg.screenshot(path=SHOT+f'/{f}.png',full_page=True)
     await pg.evaluate("go('ingests')");await pg.wait_for_timeout(400)
@@ -48,6 +48,17 @@ async def main():
     ok('test_chaine' in await pg.inner_text('main'),'Ajouter une destination Twitch')
     n0=await pg.locator('.dst').count();await pg.locator('[data-del]').last.click();await pg.click('#dlgOk');await pg.wait_for_timeout(300)
     ok(await pg.locator('.dst').count()==n0-1,'Supprimer une destination (avec confirmation)')
+    await pg.click('[data-edit]');await pg.fill('#nN','marrant_club_v2');await pg.click('#nf button[type=submit]');await pg.wait_for_timeout(300)
+    ok('marrant_club_v2' in await pg.inner_text('main'),'Modifier une destination')
+    await pg.click('[data-new=pull]');await pg.fill('#nN','Pull test');await pg.click('#nf button[type=submit]');await pg.wait_for_timeout(300)
+    ok('/pull/' in await pg.inner_text('main'),'RTMP Pulldown : adresse de récupération affichée')
+    await pg.evaluate("go('systeme')");await pg.wait_for_timeout(400)
+    tx=await pg.inner_text('main');ok(all(x in tx for x in ['Bot Twitch','Accès obs-websocket','Bascule automatique']),'Système : bascule, bot Twitch, obs-websocket')
+    ok(await pg.get_attribute('#w3','type')=='password','Mot de passe obs-websocket masqué')
+    menu=await pg.evaluate("[...document.querySelectorAll('[data-menu=obs] .menu a')].map(a=>a.dataset.r)")
+    ok(menu==['obs/collections','obs/remote','obs/fichiers'],'Menu OBS dans l’ordre d’irl.run : '+', '.join(menu))
+    menu=await pg.evaluate("[...document.querySelectorAll('[data-menu=set] .menu a')].map(a=>a.dataset.r)")
+    ok(menu==['ingests','destinations','systeme','video','mot-de-passe'],'Menu Réglages comme irl.run : '+', '.join(menu))
     await pg.evaluate("go('obs/fichiers')");await pg.wait_for_timeout(500)
     f0=await pg.locator('#fT tbody tr').count();await pg.locator('[data-rm]').first.click();await pg.click('#dlgOk');await pg.wait_for_timeout(500)
     ok(await pg.locator('#fT tbody tr').count()==f0-1,'Supprimer un fichier (avec confirmation)')
