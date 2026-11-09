@@ -1,0 +1,6 @@
+#cloud-config
+# À coller dans « Cloud config » quand tu crées le serveur (Hetzner : Ubuntu 24.04).
+# Le serveur s'installe tout seul (~10 min). Les accès sont ensuite dans /root/EXIT-ACCES.txt
+runcmd:
+  - curl -fsSL https://aktnvisuuu.github.io/regie-obs-exit/cloud/install.sh -o /root/exit-install.sh
+  - bash /root/exit-install.sh > /root/exit-install.log 2>&1

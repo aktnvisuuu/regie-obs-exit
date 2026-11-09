@@ -1,0 +1,19 @@
+# EXIT Cloud — réception des flux caméra (LiveU en SRT, téléphone en SRT/RTMP)
+logLevel: warn
+api: yes
+apiAddress: 127.0.0.1:9997
+rtsp: yes
+rtspAddress: 127.0.0.1:8554
+rtmp: yes
+rtmpAddress: :1935
+srt: yes
+srtAddress: :8890
+hls: no
+webrtc: no
+pathDefaults:
+  # mot de passe de publication (à changer en prod)
+  publishUser: ""
+  publishPass: ""
+paths:
+  live:        # caméra principale  (srt://serveur:8890?streamid=publish:live)
+  out:         # sortie OBS de test (remplacée par Twitch en prod)
