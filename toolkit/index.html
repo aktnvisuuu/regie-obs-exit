@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EXIT Toolkit</title>
+<link rel="icon" href="../icon.png">
+<style>
+@font-face{font-family:"Inter";src:url("fonts/InterVariable.woff2") format("woff2");font-weight:100 900;font-display:swap}
+:root{
+  --bg:#0a0a0a;--card:#151515;--card2:#1f1f1f;--card3:#2b2b2b;--line:#242424;--text:#fff;--sub:#9a9a9a;--mute:#828282;
+  --g:#2BE07F;--gd:#00C46B;--lime:#C8F169;--orange:#FF8A4C;--red:#FF4436;--ink:#0a0a0a;
+  --r:22px;--r2:14px;
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ease:cubic-bezier(.22,.9,.24,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text)}
+body{font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;font-feature-settings:"cv11","ss01";min-height:100vh}
+::selection{background:var(--g);color:var(--ink)}
+:focus-visible{outline:2px solid var(--g);outline-offset:2px;border-radius:10px}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:10px;border:2px solid var(--bg)}::-webkit-scrollbar-track{background:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+.num{font-variant-numeric:tabular-nums}
+svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.hidden{display:none!important}
+
+/* ---------- Barre du haut ---------- */
+.top{position:sticky;top:0;z-index:30;height:64px;display:flex;align-items:center;gap:28px;padding:0 24px;background:rgba(10,10,10,.92);backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.03em;white-space:nowrap}
+.brand img{width:34px;height:34px;border-radius:10px}
+.brand small{color:var(--sub);font-weight:600;letter-spacing:-.01em}
+.nav{display:flex;align-items:center;gap:4px;height:100%}
+.nav>.it{position:relative;height:100%;display:flex;align-items:center}
+.nav .lnk{text-decoration:none;display:flex;align-items:center;gap:6px;height:38px;padding:0 14px;border-radius:999px;color:#cfcfcf;font-weight:650;font-size:14.5px;transition:background .15s,color .15s}
+.nav .lnk:hover{background:var(--card2);color:#fff}
+.nav .lnk.on{background:#fff;color:var(--ink)}
+.nav .lnk svg.i{width:15px;height:15px}
+.menu{position:absolute;top:56px;left:0;min-width:290px;background:var(--card2);border:1px solid #2c2c2c;border-radius:18px;padding:6px;box-shadow:0 18px 40px rgba(0,0,0,.55);opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity .15s,transform .15s var(--ease)}
+.it.open .menu{opacity:1;transform:none;pointer-events:auto}
+.menu a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:#ddd;text-decoration:none;font-weight:600;font-size:14.5px}
+.menu a:hover,.menu a.on{background:var(--card3);color:#fff}
+.menu a small{display:block;color:var(--sub);font-weight:500;font-size:12.5px;margin-top:1px}
+.menu a svg.i{color:var(--g)}
+.right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.pill{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 13px;border-radius:999px;background:var(--card2);font-weight:700;font-size:13px;white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:var(--mute);flex:none}
+.pill.ok i{background:var(--g);box-shadow:0 0 0 4px rgba(43,224,127,.16)}
+.pill.warn i{background:var(--orange);animation:blink 1.1s infinite}
+.pill.live{background:var(--g);color:var(--ink)}.pill.live i{background:var(--ink);animation:blink 1.4s infinite}
+.pill.off i{background:var(--red)}
+.dest{color:var(--sub);font-size:13px;font-weight:600;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.dest b{color:#ddd;font-weight:700}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:34px;padding:0 13px;border-radius:999px;background:var(--card2);font-weight:700;font-size:13px;color:#ddd;transition:background .15s}
+.iconbtn:hover{background:var(--card3);color:#fff}
+.iconbtn.red{color:var(--red)}
+.iconbtn:disabled{opacity:.4;cursor:not-allowed}
+@keyframes blink{50%{opacity:.35}}
+.demo{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--ink);background:var(--lime);border-radius:6px;padding:2px 6px}
+
+/* ---------- Page ---------- */
+main{max-width:1480px;margin:0 auto;padding:22px 24px 72px}
+.page{animation:pin .22s var(--ease)}
+@keyframes pin{from{opacity:0;transform:translateY(6px)}}
+h1{font-size:30px;letter-spacing:-.035em;line-height:1.1;margin:6px 0 4px;font-weight:800}
+.lead{color:var(--sub);margin:0 0 22px;font-weight:500;max-width:70ch}
+.card{background:var(--card);border-radius:var(--r);padding:18px 20px}
+.ch{display:flex;align-items:center;gap:10px;margin:0 0 14px;min-height:28px}
+.ch h2{font-size:15px;margin:0;font-weight:750;letter-spacing:-.01em}
+.ch .tag{margin-left:auto}
+.tag{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:800;letter-spacing:.02em;background:var(--card3);color:#ddd;white-space:nowrap}
+.tag.g{background:var(--g);color:var(--ink)}.tag.r{background:var(--red);color:var(--ink)}.tag.o{background:var(--orange);color:var(--ink)}.tag.l{background:var(--lime);color:var(--ink)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:46px;padding:0 20px;border-radius:var(--r2);background:var(--card3);color:#fff;font-weight:750;font-size:15px;transition:transform .1s,background .15s,opacity .15s;white-space:nowrap}
+.btn:hover{background:#363636}
+.btn:active{transform:scale(.98)}
+.btn.g{background:var(--g);color:var(--ink)}.btn.g:hover{background:#4ff096}
+.btn.r{background:var(--red);color:var(--ink)}.btn.r:hover{background:#ff5d50}
+.btn.ghost{background:transparent;box-shadow:inset 0 0 0 1.5px #333}.btn.ghost:hover{background:var(--card2)}
+.btn.sm{height:36px;padding:0 14px;font-size:13.5px;border-radius:12px}
+.btn.big{height:60px;font-size:17px;border-radius:18px;padding:0 26px}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* ---------- Dashboard ---------- */
+.power{display:flex;align-items:center;gap:22px;padding:22px 24px;margin-bottom:16px;border-radius:var(--r);background:var(--card)}
+.power .ico{width:56px;height:56px;border-radius:18px;background:var(--card3);display:grid;place-items:center;flex:none}
+.power .ico svg.i{width:26px;height:26px}
+.power h2{margin:0;font-size:21px;letter-spacing:-.025em;font-weight:800}
+.power p{margin:2px 0 0;color:var(--sub);font-weight:500}
+.power .act{margin-left:auto;display:flex;gap:10px}
+.power.booting .ico{background:var(--orange);color:var(--ink)}
+.steps{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.steps span{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:650;color:var(--mute)}
+.steps span i{width:16px;height:16px;border-radius:50%;border:2px solid #3a3a3a;flex:none}
+.steps span.done{color:#ddd}.steps span.done i{background:var(--g);border-color:var(--g)}
+.steps span.now{color:#fff}.steps span.now i{border-color:var(--orange);border-top-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dash{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr) minmax(250px,.72fr);gap:16px;align-items:start}
+.col{display:grid;gap:16px;min-width:0}
+.dis{opacity:.38;pointer-events:none;filter:saturate(.4)}
+.mon{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#000}
+.mon canvas{width:100%;height:100%;display:block}
+.mon .ov{position:absolute;inset:0;display:grid;place-items:center;color:var(--sub);font-weight:650;text-align:center;padding:20px}
+.mon .scn{position:absolute;left:12px;top:12px}
+.stream{display:flex;align-items:center;gap:16px}
+.stream .t{font-size:34px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.stream .t small{display:block;font-size:12.5px;letter-spacing:0;color:var(--sub);font-weight:650;margin-top:6px}
+.stream .btn{margin-left:auto}
+.dchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.dchip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:999px;background:var(--card2);font-size:13px;font-weight:650;color:#ddd}
+.dchip svg.i{width:15px;height:15px;color:#b18cff}
+.kb{display:flex;align-items:baseline;gap:8px;margin:2px 0 4px}
+.kb b{font-size:54px;font-weight:800;letter-spacing:-.05em;line-height:1}
+.kb span{color:var(--sub);font-weight:700}
+.meta{display:flex;gap:18px;color:var(--sub);font-size:13px;font-weight:600;margin-bottom:16px}
+.meta b{color:#ddd}
+.graph{height:150px;position:relative}
+.graph canvas{width:100%;height:100%;display:block}
+.scenes{display:grid;gap:8px}
+.scene{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:0 14px;border-radius:14px;background:var(--card2);font-weight:700;font-size:14.5px;text-align:left;transition:background .15s,transform .1s}
+.scene:hover{background:var(--card3)}
+.scene:active{transform:scale(.985)}
+.scene svg.i{color:var(--sub);width:17px;height:17px}
+.scene .air{margin-left:auto}
+.scene.on{background:var(--g);color:var(--ink)}
+.scene.on svg.i{color:var(--ink)}
+.scene.on .air{background:var(--ink);color:var(--g)}
+.note{color:var(--sub);font-size:12.5px;font-weight:550;margin-top:12px}
+.foot{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;gap:10px;justify-content:center;align-items:center;height:42px;background:rgba(10,10,10,.92);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.foot .tag{height:26px;font-size:12px}
+
+/* ---------- Formulaires / réglages ---------- */
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.stack{display:grid;gap:16px;max-width:1040px}
+.field{display:grid;gap:7px;margin-bottom:16px}
+.field>label{font-size:13px;font-weight:700;color:#cfcfcf}
+.field .help{font-size:12.5px;color:var(--sub);font-weight:500;margin-top:-2px}
+.inp{height:46px;border-radius:var(--r2);background:var(--card2);border:1.5px solid transparent;padding:0 14px;font-weight:600;font-size:15px;width:100%;outline:none;transition:border-color .15s}
+.inp:focus{border-color:var(--g)}
+select.inp{appearance:none;background-image:linear-gradient(45deg,transparent 50%,#9a9a9a 50%),linear-gradient(135deg,#9a9a9a 50%,transparent 50%);background-position:calc(100% - 20px) 20px,calc(100% - 15px) 20px;background-size:5px 5px;background-repeat:no-repeat;padding-right:40px}
+.unit{position:relative}.unit .inp{padding-right:64px}.unit span{position:absolute;right:14px;top:13px;color:var(--sub);font-weight:700;font-size:13px}
+.seg{display:inline-grid;grid-auto-flow:column;gap:4px;background:var(--card2);padding:4px;border-radius:14px}
+.seg button{height:38px;padding:0 14px;border-radius:10px;font-weight:700;font-size:13.5px;color:#bdbdbd}
+.seg button.on{background:#fff;color:var(--ink)}
+.switch{position:relative;width:46px;height:28px;flex:none}
+.switch input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.switch i{position:absolute;inset:0;border-radius:999px;background:var(--card3);transition:background .15s}
+.switch i::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .18s var(--ease)}
+.switch input:checked+i{background:var(--g)}
+.switch input:checked+i::after{transform:translateX(18px)}
+.switch input:focus-visible+i{outline:2px solid var(--g);outline-offset:2px}
+.line{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.line:first-child{border-top:0;padding-top:0}
+.line .tx{flex:1;min-width:0}
+.line .tx b{display:block;font-weight:700}
+.line .tx small{color:var(--sub);font-weight:500;font-size:13px}
+.secret{display:flex;gap:8px;align-items:center}
+.secret .inp{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:13.5px;letter-spacing:.01em}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.tabs button{height:36px;padding:0 13px;border-radius:999px;background:var(--card2);font-weight:700;font-size:13.5px;color:#cfcfcf;display:inline-flex;align-items:center;gap:7px}
+.tabs button.on{background:#fff;color:var(--ink)}
+.tabs button .soon{font-size:10.5px;font-weight:800;color:var(--ink);background:var(--lime);border-radius:5px;padding:1px 5px}
+.callout{background:var(--card2);border-radius:16px;padding:14px 16px;color:#cfcfcf;font-size:13.5px;font-weight:550;line-height:1.5}
+.callout b{color:#fff}
+.list{display:grid;gap:8px}
+.dst{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:16px;background:var(--card2)}
+.dst .lg{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--card3);flex:none}
+.dst .lg.tw{background:#9146FF;color:#fff}
+.dst .tx{flex:1;min-width:0}
+.dst .tx b{display:block;font-weight:750}
+.dst .tx small{color:var(--sub);font-weight:550;font-size:13px}
+.newd{display:grid;gap:8px}
+.newd .btn{justify-content:flex-start}
+.form{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.empty{color:var(--sub);text-align:center;padding:28px 10px;font-weight:600}
+
+/* ---------- OBS ---------- */
+.remote{position:relative;border-radius:var(--r);overflow:hidden;background:#000;aspect-ratio:16/10;max-height:calc(100vh - 230px);margin:0 auto}
+.remote img{width:100%;height:100%;object-fit:contain;display:block}
+.remote .ov{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--sub);font-weight:650;background:#0d0d0d}
+.drop{display:grid;place-items:center;gap:8px;padding:28px;border-radius:var(--r);border:2px dashed #2f2f2f;color:var(--sub);font-weight:650;text-align:center;transition:border-color .15s,background .15s;cursor:pointer}
+.drop.over{border-color:var(--g);background:rgba(43,224,127,.06);color:#fff}
+.drop svg.i{width:28px;height:28px;color:var(--g)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;font-weight:750;color:var(--sub);padding:0 12px 10px;letter-spacing:.02em}
+td{padding:10px 12px;border-top:1px solid var(--line);font-weight:600;font-size:14px}
+td.num,th.num{text-align:right}
+td .fn{display:flex;align-items:center;gap:10px}
+td .fn svg.i{color:var(--sub)}
+td .acts{display:flex;gap:6px;justify-content:flex-end}
+tr:hover td{background:#181818}
+.ib{width:34px;height:34px;border-radius:10px;display:inline-grid;place-items:center;color:#bbb;background:transparent}
+.ib:hover{background:var(--card3);color:#fff}
+.ib.r:hover{color:var(--red)}
+.coll{display:flex;align-items:center;gap:14px;padding:16px;border-radius:16px;background:var(--card2)}
+.coll b{font-weight:750}
+
+/* ---------- Connexion, dialogues, toasts ---------- */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login .box{width:min(400px,100%);display:grid;gap:14px;text-align:center}
+.login img{width:72px;height:72px;border-radius:22px;margin:0 auto}
+.login h1{font-size:34px}
+.login p{color:var(--sub);margin:0 0 6px;font-weight:550}
+.login .err{color:var(--red);font-weight:700;min-height:20px}
+dialog{border:0;padding:0;border-radius:24px;background:var(--card2);color:#fff;width:min(440px,calc(100% - 32px));box-shadow:0 30px 80px rgba(0,0,0,.6)}
+dialog::backdrop{background:rgba(0,0,0,.6);backdrop-filter:blur(3px)}
+dialog .in{padding:24px}
+dialog h3{margin:0 0 6px;font-size:20px;letter-spacing:-.02em}
+dialog p{margin:0 0 20px;color:#bdbdbd;font-weight:500}
+dialog .row{justify-content:flex-end}
+.toasts{position:fixed;left:50%;bottom:58px;transform:translateX(-50%);z-index:60;display:grid;gap:8px;justify-items:center}
+.toast{background:#fff;color:var(--ink);font-weight:750;font-size:14px;padding:11px 18px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.4);animation:tin .2s var(--ease)}
+.toast.err{background:var(--red);color:var(--ink)}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+.banner{display:flex;align-items:center;gap:10px;background:var(--orange);color:var(--ink);font-weight:750;padding:10px 16px;border-radius:14px;margin-bottom:14px}
+
+@media (max-width:1180px){.dash{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.dash>.col:last-child{grid-column:1/-1}.scenes{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
+@media (max-width:900px){.top{gap:14px;padding:0 14px}.brand small,.dest{display:none}.dash,.grid2{grid-template-columns:1fr}.power{flex-wrap:wrap}.power .act{margin-left:0}}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <!-- icônes : tracés Lucide (licence ISC) -->
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/></symbol>
+  <symbol id="i-micoff" viewBox="0 0 24 24"><path d="M2 2l20 20"/><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"/><path d="M5 10v2a7 7 0 0 0 12 5"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/><path d="M12 19v3"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eyeoff" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M2 2l20 20"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-max" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-twitch" viewBox="0 0 24 24"><path d="M21 2H3v16h5v4l4-4h5l4-4V2zm-10 9V7m5 4V7"/></symbol>
+  <symbol id="i-radio" viewBox="0 0 24 24"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></symbol>
+  <symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7"/><path d="M4 10V3"/><path d="M12 21v-9"/><path d="M12 8V3"/><path d="M20 21v-5"/><path d="M20 12V3"/><path d="M2 14h4"/><path d="M10 8h4"/><path d="M18 16h4"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
+  <symbol id="i-clip" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
+  <symbol id="i-dash" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+</svg>
+
+<div id="app"></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<dialog id="dlg"><div class="in"><h3 id="dlgT"></h3><p id="dlgP"></p><div class="row"><button class="btn ghost sm" id="dlgNo">Annuler</button><button class="btn r sm" id="dlgOk">OK</button></div></div></dialog>
+
+<script>
+'use strict';
+/* =====================================================================
+   EXIT Toolkit · interface ordi (équivalent du dashboard irl.run, DA EXIT)
+   Toutes les données passent par API. Ici : DemoAPI (données simulées).
+   Plus tard : ObsAPI (vrai OBS) + portier (allumage du serveur).
+   ===================================================================== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ic=(n,c='')=>`<svg class="i ${c}"><use href="#i-${n}"/></svg>`;
+const fmtDur=ms=>{const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+':':'')+String(m).padStart(h?2:1,'0')+':'+String(x).padStart(2,'0')};
+const fr=n=>Math.round(n).toLocaleString('fr-FR');
+const size=b=>b>=1e9?(b/1e9).toFixed(1).replace('.',',')+' Go':b>=1e6?Math.round(b/1e6)+' Mo':Math.max(1,Math.round(b/1e3))+' Ko';
+function toast(t,err){const el=document.createElement('div');el.className='toast'+(err?' err':'');el.textContent=t;$('#toasts').append(el);setTimeout(()=>el.remove(),2600)}
+function confirmBox(title,text,ok='Confirmer',danger=true){
+  return new Promise(res=>{const d=$('#dlg');$('#dlgT').textContent=title;$('#dlgP').textContent=text;
+    const b=$('#dlgOk');b.textContent=ok;b.className='btn sm '+(danger?'r':'g');
+    const done=v=>{d.close();res(v)};$('#dlgOk').onclick=()=>done(true);$('#dlgNo').onclick=()=>done(false);d.oncancel=()=>res(false);d.showModal();$('#dlgNo').focus()})
+}
+
+/* ---------- DemoAPI : un serveur simulé ---------- */
+const AUTO=['Ingest','Ingest Low-bitrate','Ingest Offline'];
+const DemoAPI=(()=>{
+  const subs=new Set(),emit=()=>subs.forEach(f=>f());
+  const st={server:'off',bootStep:0,bootAt:0,streaming:false,streamStart:0,
+    ingest:{name:'LiveU · SRT',kbps:0,rtt:0,live:false,muted:false},
+    program:'INTRO',scenes:['INTRO','PAUSE','FIN','Ingest','Ingest Offline','Ingest Low-bitrate','BACKUP MC'],
+    hist:[],uptimeAt:0,idleFrom:Date.now(),camOn:true};
+  const settings={
+    ingests:[{id:'live',name:'Caméra principale',main:true,host:'demo.exit-toolkit.example',key:'exitdemo7Qm2K9pX4v'}],
+    destinations:[
+      {id:'d1',type:'twitch',name:'marrant_club',server:'auto',key:'live_demo_000000000000_xxxxxxxxxxxxxxxxx',enabled:true},
+      {id:'d2',type:'twitch',name:'Grimkujow',server:'auto',key:'live_demo_111111111111_yyyyyyyyyyyyyyyyy',enabled:false}],
+    enhanced:'',
+    system:{lowKbps:1000,offKbps:150,offExitDelay:1.5,mode:'streaming',rttOn:true,rttMax:1500},
+    video:{base:'1920x1080',output:'1920x1080',fps:'50',bitrate:6000,encoder:'nvenc'},
+    access:{obsPass:'demoObsPass_9f8a7b',obsUrl:'wss://demo.exit-toolkit.example/obs'}
+  };
+  let files=[['VF.mp4',1.06e9],['Bandeau 10.webm',115e6],['Logos live V2.webm',6e6],['STARTING_V3.webm',19e6],['WAITING_V3.webm',19e6],['END_V3.webm',19e6],['habillage 04.webm',18e6],['Conversion-709.cube',983e3],['Neutral.cube',112e3],['Tungsten.cube',112e3],['Ice-Blue.cube',112e3],['Green-Eyes.cube',112e3],['Utopia.cube',112e3],['Exterieur-01.cube',979e3],['Filmkid16.cube',7e6],['marrant_club.webp',24e3]].map(([name,b],i)=>({name,size:b,date:Date.now()-i*86400e3*2}));
+  let collections=[{name:'default-sc',active:true},{name:'Grünt Festival',active:false}];
+  // simulation : boucle 1 s
+  let want=null,since=0;
+  setInterval(()=>{
+    const now=Date.now();
+    if(st.server==='booting'){const s=Math.floor((now-st.bootAt)/1600);st.bootStep=s;if(s>=4){st.server='on';st.uptimeAt=now;st.camOn=true;toast('Serveur prêt')}}
+    if(st.server==='stopping'&&now-st.bootAt>2500){st.server='off';st.streaming=false}
+    if(st.server==='on'){
+      const g=st.ingest;
+      if(st.camOn){const t=now/1000;let v=4800+900*Math.sin(t/7)+500*Math.sin(t/2.3)+(Math.random()-.5)*600;if(Math.floor(t/45)%3===2&&t%45<10)v=700+Math.random()*250;g.kbps=Math.max(0,v);g.rtt=Math.round(55+25*Math.sin(t/5)+Math.random()*12);g.live=true}
+      else{g.kbps=0;g.rtt=0;g.live=false}
+      st.hist.push({t:now,v:g.kbps});while(st.hist.length&&st.hist[0].t<now-60000)st.hist.shift();
+      // bascule auto (mêmes règles que l'agent du serveur)
+      const s=settings.system,on=s.mode==='always'||(s.mode==='streaming'&&st.streaming);
+      if(on&&AUTO.includes(st.program)){
+        const tg=!g.live||g.kbps<s.offKbps?'Ingest Offline':g.kbps<s.lowKbps||(s.rttOn&&g.rtt>s.rttMax)?'Ingest Low-bitrate':'Ingest';
+        if(tg!==want){want=tg;since=now}
+        const wait=tg==='Ingest Offline'?2000:tg==='Ingest Low-bitrate'?3000:(st.program==='Ingest Offline'?s.offExitDelay*1000:4000);
+        if(tg!==st.program&&now-since>=wait)st.program=tg;
+      }
+    }else{st.ingest.kbps=0;st.ingest.live=false}
+    emit();
+  },1000);
+  const need=()=>{if(st.server!=='on')throw new Error('Serveur éteint')};
+  return{
+    demo:true,state:st,settings,on:f=>{subs.add(f);return()=>subs.delete(f)},
+    async power(on){
+      if(on&&st.server==='off'){st.server='booting';st.bootAt=Date.now();st.bootStep=0;emit();return}
+      if(!on){if(st.streaming)throw new Error('Impossible : un live est en cours');if(st.server==='on'){st.server='stopping';st.bootAt=Date.now();emit()}}
+    },
+    async stream(on){need();st.streaming=on;if(on)st.streamStart=Date.now();emit()},
+    async setScene(n){need();st.program=n;emit()},
+    async ingest(a){need();if(a==='mute')st.ingest.muted=true;if(a==='unmute')st.ingest.muted=false;if(a==='fix'){st.ingest.live=false;await new Promise(r=>setTimeout(r,900))}emit()},
+    async save(section,data){Object.assign(settings[section],data);emit()},
+    async regenKey(id){const g=settings.ingests.find(x=>x.id===id);g.key='exitdemo'+Math.random().toString(36).slice(2,12);emit()},
+    async addDest(d){settings.destinations.push({id:'d'+Date.now(),enabled:false,server:'auto',...d});emit()},
+    async setDest(id,patch){Object.assign(settings.destinations.find(x=>x.id===id),patch);emit()},
+    async delDest(id){settings.destinations=settings.destinations.filter(x=>x.id!==id);settings.enhanced=settings.enhanced===id?'':settings.enhanced;emit()},
+    async files(){need();return files.slice().sort((a,b)=>a.name.localeCompare(b.name,'fr',{numeric:true}))},
+    async upload(f){need();await new Promise(r=>setTimeout(r,500));files=files.filter(x=>x.name!==f.name);files.push({name:f.name,size:f.size,date:Date.now()})},
+    async remove(name){need();files=files.filter(x=>x.name!==name)},
+    async collections(){need();return collections},
+    async setCollection(n){need();collections.forEach(c=>c.active=c.name===n);emit()},
+    async dupCollection(n,nn){need();collections.push({name:nn,active:false});emit()},
+    async renameCollection(n,nn){need();const c=collections.find(x=>x.name===n);c.name=nn;emit()},
+    remoteUrl(){return st.server==='on'?'demo/remote.jpg':null},
+  };
+})();
+let API=DemoAPI;
+
+/* ---------- Connexion ---------- */
+const AUTH_KEY='exit-toolkit-auth';
+function authed(){try{return localStorage.getItem(AUTH_KEY)==='ok'}catch(e){return false}}
+function renderLogin(){
+  $('#app').innerHTML=`<div class="login"><form class="box" id="lf">
+    <img src="../logo.png" alt="EXIT">
+    <h1>EXIT Toolkit</h1><p>Le serveur OBS d'EXIT. Mot de passe de l'équipe.</p>
+    <input class="inp" id="lp" type="password" autocomplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe">
+    <button class="btn g big" type="submit">Entrer</button>
+    <div class="err" id="le"></div>
+    <div class="note"><span class="demo">DÉMO</span>&nbsp; mot de passe : exit</div></form></div>`;
+  $('#lp').focus();
+  $('#lf').onsubmit=e=>{e.preventDefault();if($('#lp').value.trim().toLowerCase()==='exit'){try{localStorage.setItem(AUTH_KEY,'ok')}catch(err){}boot()}else{$('#le').textContent='Mot de passe incorrect'}};
+}
+
+/* ---------- Coquille : barre du haut + routes ---------- */
+const ROUTES={
+  dashboard:{t:'Dashboard',r:renderDash},
+  'obs/remote':{t:'OBS à distance',g:'obs',r:renderRemote},'obs/fichiers':{t:'Fichiers',g:'obs',r:renderFiles},'obs/collections':{t:'Collections de scènes',g:'obs',r:renderCollections},
+  ingests:{t:'Ingests',g:'set',r:renderIngests},destinations:{t:'Destinations',g:'set',r:renderDestinations},systeme:{t:'Système',g:'set',r:renderSystem},video:{t:'Vidéo',g:'set',r:renderVideo},acces:{t:'Accès',g:'set',r:renderAccess},
+};
+const route=()=>{const r=location.hash.replace(/^#\/?/,'');return ROUTES[r]?r:'dashboard'};
+function go(r){location.hash='#/'+r}
+let unsub=null,live=null;
+function shell(){
+  $('#app').innerHTML=`
+  <header class="top">
+    <a class="brand" href="#/dashboard" style="color:inherit;text-decoration:none"><img src="../logo.png" alt="">EXIT <small>Toolkit</small></a>
+    <nav class="nav" aria-label="Menu principal">
+      <div class="it"><a class="lnk" data-r="dashboard" href="#/dashboard">Dashboard</a></div>
+      <div class="it" data-menu="obs"><button class="lnk" data-g="obs" aria-haspopup="true">OBS ${ic('down')}</button>
+        <div class="menu" role="menu">
+          <a href="#/obs/remote" data-r="obs/remote">${ic('monitor')}<span>OBS à distance<small>Le vrai OBS dans le navigateur</small></span></a>
+          <a href="#/obs/fichiers" data-r="obs/fichiers">${ic('folder')}<span>Fichiers<small>Vidéos, images, LUT du serveur</small></span></a>
+          <a href="#/obs/collections" data-r="obs/collections">${ic('layers')}<span>Collections de scènes</span></a>
+        </div></div>
+      <div class="it" data-menu="set"><button class="lnk" data-g="set" aria-haspopup="true">Réglages ${ic('down')}</button>
+        <div class="menu" role="menu">
+          <a href="#/ingests" data-r="ingests">${ic('radio')}<span>Ingests<small>Brancher le LiveU, un téléphone…</small></span></a>
+          <a href="#/destinations" data-r="destinations">${ic('send')}<span>Destinations<small>Twitch, RTMP, SRT</small></span></a>
+          <a href="#/systeme" data-r="systeme">${ic('bot')}<span>Système<small>Bascule auto, seuils</small></span></a>
+          <a href="#/video" data-r="video">${ic('sliders')}<span>Vidéo<small>Résolution, images/s, débit</small></span></a>
+          <a href="#/acces" data-r="acces">${ic('key')}<span>Accès<small>Mots de passe, Régie</small></span></a>
+        </div></div>
+    </nav>
+    <div class="right">
+      ${API.demo?'<span class="demo" title="Données simulées">DÉMO</span>':''}
+      <span class="dest" id="tDest"></span>
+      <span class="pill" id="tSrv"><i></i><span></span></span>
+      <span class="pill hidden" id="tLive"><i></i><span class="num"></span></span>
+      <button class="iconbtn red" id="tOff">${ic('power')}Éteindre</button>
+      <button class="iconbtn" id="tOut" title="Déconnexion" aria-label="Déconnexion">${ic('logout')}</button>
+    </div>
+  </header>
+  <main id="main"></main>
+  <footer class="foot" id="foot"></footer>`;
+  document.querySelectorAll('[data-menu]').forEach(m=>{
+    const b=m.querySelector('button');
+    b.onclick=e=>{e.stopPropagation();const o=m.classList.contains('open');document.querySelectorAll('[data-menu]').forEach(x=>x.classList.remove('open'));m.classList.toggle('open',!o)};
+    m.onmouseenter=()=>{document.querySelectorAll('[data-menu]').forEach(x=>x.classList.remove('open'));m.classList.add('open')};
+    m.onmouseleave=()=>m.classList.remove('open');
+  });
+  document.addEventListener('click',()=>document.querySelectorAll('[data-menu]').forEach(x=>x.classList.remove('open')));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('[data-menu]').forEach(x=>x.classList.remove('open'))});
+  $('#tOff').onclick=shutdown;
+  $('#tOut').onclick=()=>{try{localStorage.removeItem(AUTH_KEY)}catch(e){}if(unsub)unsub();location.hash='';renderLogin()};
+  API.on(renderTop);renderTop();
+}
+async function shutdown(){
+  const s=API.state;
+  if(s.streaming){toast('Impossible d’éteindre : un live est en cours. Arrête d’abord le stream.',true);return}
+  if(s.server!=='on')return;
+  if(await confirmBox('Éteindre le serveur ?','OBS s’arrête. Tes scènes, fichiers et réglages sont conservés pour le prochain live.','Éteindre'))
+    API.power(false).then(()=>toast('Extinction du serveur…')).catch(e=>toast(e.message,true));
+}
+function renderTop(){
+  const s=API.state,on=s.server==='on';
+  const sp=$('#tSrv');if(!sp)return;
+  const lab={off:'Serveur éteint',booting:'Démarrage…',on:'Serveur en ligne',stopping:'Extinction…'}[s.server];
+  sp.className='pill '+({off:'off',booting:'warn',on:'ok',stopping:'warn'}[s.server]);sp.querySelector('span').textContent=lab;
+  const lv=$('#tLive');lv.classList.toggle('hidden',!s.streaming);lv.className='pill live'+(s.streaming?'':' hidden');lv.querySelector('span').textContent='LIVE '+fmtDur(Date.now()-s.streamStart);
+  $('#tOff').disabled=!on||s.streaming;$('#tOff').title=s.streaming?'Impossible pendant un live':'Éteindre le serveur';
+  const act=API.settings.destinations.filter(d=>d.enabled);
+  $('#tDest').innerHTML=act.length?'→ <b>'+act.map(d=>esc(d.name)).join(' + ')+'</b>':'Aucune destination';
+  const f=$('#foot');
+  f.innerHTML=`<span class="tag ${s.streaming?'g':'r'}">${s.streaming?'Stream en direct':'Stream hors ligne'}</span>
+    <span class="tag ${!on?'':s.ingest.live?(s.ingest.kbps<API.settings.system.lowKbps?'o':'g'):'r'}">${esc(s.ingest.name)} · ${on&&s.ingest.live?fr(s.ingest.kbps)+' kb/s':'hors ligne'}</span>
+    <span class="tag">${on?'Serveur allumé depuis '+fmtDur(Date.now()-s.uptimeAt):lab}</span>`;
+}
+function onRoute(){
+  if(!authed()){renderLogin();return}
+  if(!$('#main'))shell();
+  const r=route(),R=ROUTES[r];
+  document.querySelectorAll('[data-r]').forEach(a=>a.classList.toggle('on',a.dataset.r===r));
+  document.querySelectorAll('[data-g]').forEach(b=>b.classList.toggle('on',b.dataset.g===R.g));
+  document.querySelectorAll('[data-menu]').forEach(x=>x.classList.remove('open'));
+  document.title=R.t+' · EXIT Toolkit';
+  if(live){live();live=null}
+  $('#main').innerHTML='';R.r($('#main'));window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',onRoute);
+function boot(){if(!location.hash)location.hash='#/dashboard';else onRoute()}
+// bandeau « serveur éteint » réutilisé par les pages qui ont besoin d'OBS
+function offCard(what){
+  const s=API.state;
+  return `<div class="power ${s.server==='booting'?'booting':''}"><div class="ico">${ic('power')}</div><div>
+    <h2>${s.server==='booting'?'Démarrage du serveur…':'Serveur éteint'}</h2><p>${esc(what)} ${s.server==='booting'?'arrive dans un instant.':'sera disponible une fois le serveur allumé.'}</p></div>
+    <div class="act">${s.server==='off'?`<button class="btn g" data-pw>${ic('power')}Allumer le serveur</button>`:''}</div></div>`;
+}
+function bindPower(root){root.querySelectorAll('[data-pw]').forEach(b=>b.onclick=()=>API.power(true).then(()=>toast('Allumage du serveur…')))}
+
+/* ---------- Dashboard ---------- */
+function renderDash(m){
+  m.innerHTML=`<div class="page">
+    <section id="dPow"></section>
+    <div class="dash">
+      <div class="col">
+        <section class="card"><div class="ch"><h2>Program Monitor</h2><span class="tag ch-tag" id="dScn"></span></div>
+          <div class="mon"><canvas id="dMon" width="960" height="540"></canvas><div class="ov hidden" id="dMonOv"></div></div></section>
+        <section class="card" id="dStream"></section>
+      </div>
+      <div class="col">
+        <section class="card" id="dIng"></section>
+        <section class="card"><div class="ch"><h2>Débit de l'ingest</h2><span class="tag">60 dernières secondes</span></div>
+          <div class="graph"><canvas id="dGr"></canvas></div></section>
+      </div>
+      <div class="col">
+        <section class="card"><div class="ch"><h2>Scènes</h2><span class="tag" id="dMode"></span></div><div class="scenes" id="dScenes"></div>
+          <div class="note">${ic('bot')} = scènes de la bascule auto selon le débit.</div></section>
+      </div>
+    </div></div>`;
+  const draw=()=>{dashPower();dashStream();dashIngest();dashScenes();drawGraph();};
+  draw();const u=API.on(draw);
+  let raf;const loop=t=>{drawMonitor(t);raf=requestAnimationFrame(loop)};raf=requestAnimationFrame(loop);
+  live=()=>{u();cancelAnimationFrame(raf)};
+}
+function dashPower(){
+  const s=API.state,el=$('#dPow');if(!el)return;
+  if(s.server==='on'){el.innerHTML='';return}
+  if(s.server==='booting'){
+    const st=['Machine','OBS','Réception caméra','Prêt'];
+    el.innerHTML=`<div class="power booting"><div class="ico">${ic('power')}</div><div><h2>Démarrage du serveur…</h2><p>Environ 1 à 2 minutes. Tu peux rester sur cette page.</p>
+      <div class="steps">${st.map((x,i)=>`<span class="${i<s.bootStep?'done':i===s.bootStep?'now':''}"><i></i>${x}</span>`).join('')}</div></div></div>`;return}
+  if(s.server==='stopping'){el.innerHTML=`<div class="power booting"><div class="ico">${ic('power')}</div><div><h2>Extinction du serveur…</h2><p>Scènes, fichiers et réglages sont conservés.</p></div></div>`;return}
+  if(!el.querySelector('[data-pw]')){
+    el.innerHTML=`<div class="power"><div class="ico">${ic('power')}</div><div><h2>Serveur éteint</h2><p>Allume-le quelques minutes avant le live. Il s'éteint tout seul après 15 min sans live ni personne connectée, jamais pendant un live.</p></div>
+      <div class="act"><button class="btn g big" data-pw>${ic('power')}Allumer le serveur</button></div></div>`;bindPower(el)}
+}
+function dashStream(){
+  const s=API.state,el=$('#dStream');if(!el)return;const on=s.server==='on';
+  const dests=API.settings.destinations.filter(d=>d.enabled);
+  el.className='card'+(on?'':' dis');
+  const key=s.streaming+'|'+on+'|'+dests.map(d=>d.id).join();
+  if(el.dataset.k!==key){el.dataset.k=key;
+    el.innerHTML=`<div class="ch"><h2>Stream</h2><span class="tag ${s.streaming?'g':'r'}">${s.streaming?'En direct':'Hors ligne'}</span></div>
+    <div class="stream"><div class="t num" id="dDur">${s.streaming?fmtDur(Date.now()-s.streamStart):'—'}<small>${s.streaming?'temps de live':'pas en live'}</small></div>
+      ${s.streaming?`<button class="btn r big" id="dStop">${ic('stop')}Arrêter le stream</button>`:`<button class="btn g big" id="dGo" ${dests.length?'':'disabled'}>${ic('play')}Démarrer le stream</button>`}</div>
+    <div class="dchips">${dests.length?dests.map(d=>`<span class="dchip">${ic('twitch')}${esc(d.name)}</span>`).join(''):`<span class="note" style="margin:0">Aucune destination active. <a href="#/destinations" style="color:var(--g)">Ajouter une destination</a></span>`}</div>`;
+    const g=$('#dGo');if(g)g.onclick=()=>API.stream(true).then(()=>toast('Stream démarré')).catch(e=>toast(e.message,true));
+    const x=$('#dStop');if(x)x.onclick=async()=>{if(await confirmBox('Arrêter le stream ?','Le live s’arrête sur '+dests.map(d=>d.name).join(' et ')+'. Les spectateurs verront la fin du live.','Arrêter le stream'))API.stream(false).then(()=>toast('Stream arrêté'))};
+  }else if(s.streaming){$('#dDur').firstChild.textContent=fmtDur(Date.now()-s.streamStart)}
+}
+function ingLevel(){const s=API.state,g=s.ingest,sy=API.settings.system;
+  if(s.server!=='on')return{t:'Serveur éteint',c:''};if(!g.live)return{t:'Hors ligne',c:'r'};
+  if(g.kbps<sy.offKbps)return{t:'Plus de signal',c:'r'};if(g.kbps<sy.lowKbps)return{t:'Débit faible',c:'o'};if(g.kbps<2500)return{t:'Compliqué',c:'o'};return{t:'En ligne',c:'g'}}
+function dashIngest(){
+  const s=API.state,g=s.ingest,el=$('#dIng');if(!el)return;const on=s.server==='on',lv=ingLevel();
+  el.className='card'+(on?'':' dis');
+  const key=on+'|'+g.muted;
+  if(el.dataset.k!==key){el.dataset.k=key;
+    el.innerHTML=`<div class="ch"><h2>Ingest</h2><span class="tag" id="iTag"></span></div>
+    <div class="row" style="gap:8px;margin-bottom:8px;color:#ddd;font-weight:700">${ic('radio')}<span>${esc(g.name)}</span><span class="tag l" style="height:20px;font-size:10.5px">PRINCIPALE</span></div>
+    <div class="kb"><b class="num" id="iKb">–</b><span>kb/s</span></div>
+    <div class="meta"><span>RTT <b class="num" id="iRtt">–</b></span><span>Son <b>${g.muted?'coupé':'actif'}</b></span></div>
+    <div class="row">${g.muted?`<button class="btn sm g" data-ia="unmute">${ic('mic')}Rétablir le son</button>`:`<button class="btn sm" data-ia="mute">${ic('micoff')}Couper le son</button>`}
+      <button class="btn sm" data-ia="fix" title="Relance la source caméra si l'image est bloquée">${ic('wrench')}Réparer</button></div>`;
+    el.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>API.ingest(b.dataset.ia).then(()=>toast({mute:'Son de la caméra coupé',unmute:'Son de la caméra rétabli',fix:'Source caméra relancée'}[b.dataset.ia])))}
+  const t=$('#iTag');t.className='tag '+lv.c;t.textContent=lv.t;
+  $('#iKb').textContent=on&&g.live?fr(g.kbps):'–';$('#iKb').style.color=lv.c==='r'?'var(--red)':lv.c==='o'?'var(--orange)':lv.c==='g'?'var(--g)':'';
+  $('#iRtt').textContent=on&&g.live?g.rtt+' ms':'–';
+}
+function dashScenes(){
+  const s=API.state,el=$('#dScenes');if(!el)return;const on=s.server==='on';
+  el.parentElement.className='card'+(on?'':' dis');
+  const md={disabled:'Bascule auto : désactivée',streaming:'Bascule auto : en live',always:'Bascule auto : toujours'}[API.settings.system.mode];
+  $('#dMode').textContent=md;
+  const key=s.program+'|'+s.scenes.join();
+  if(el.dataset.k===key)return;el.dataset.k=key;
+  el.innerHTML=s.scenes.map(n=>`<button class="scene${n===s.program?' on':''}" data-sc="${esc(n)}">${ic(AUTO.includes(n)?'bot':'image')}<span>${esc(n)}</span>${n===s.program?'<span class="tag air">ON AIR</span>':''}</button>`).join('');
+  el.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>API.setScene(b.dataset.sc).catch(e=>toast(e.message,true)));
+  const t=$('#dScn');if(t){t.textContent=on?s.program:'—'}
+}
+// Program Monitor (démo) : une image de caméra simulée + les écrans des scènes
+function drawMonitor(t){
+  const c=$('#dMon');if(!c)return;const g=c.getContext('2d'),W=c.width,H=c.height,s=API.state;
+  const ov=$('#dMonOv');
+  if(s.server!=='on'){g.fillStyle='#000';g.fillRect(0,0,W,H);ov.classList.remove('hidden');ov.textContent=s.server==='booting'?'Démarrage…':'Pas d’image : serveur éteint';return}
+  ov.classList.add('hidden');
+  const p=s.program,cam=()=>{
+    // « rue de nuit » : ciel, immeubles, lumières qui bougent doucement (image de démonstration)
+    const sky=g.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#14233a');sky.addColorStop(.6,'#2a2440');sky.addColorStop(1,'#120f18');g.fillStyle=sky;g.fillRect(0,0,W,H);
+    const sh=Math.sin(t/2400)*18;
+    for(let i=0;i<9;i++){const x=i*120-40+sh*(i%2?1:-1),h=180+((i*73)%150);g.fillStyle=i%2?'#0d0f17':'#11131d';g.fillRect(x,H-h-60,110,h+60);
+      g.fillStyle='rgba(255,210,120,.55)';for(let y=0;y<h-20;y+=28)for(let k=0;k<3;k++)if((i*7+y+k*3)%5<2)g.fillRect(x+14+k*30,H-h-40+y,14,10)}
+    g.fillStyle='#07070a';g.fillRect(0,H-70,W,70);
+    for(let i=0;i<6;i++){const x=(t/9+i*190)%(W+200)-100;const gr=g.createRadialGradient(x,H-90,2,x,H-90,90);gr.addColorStop(0,'rgba(43,224,127,.35)');gr.addColorStop(1,'rgba(43,224,127,0)');g.fillStyle=gr;g.fillRect(x-90,H-180,180,180)}
+    g.fillStyle='rgba(255,255,255,.08)';for(let i=0;i<40;i++){g.fillRect(Math.random()*W,Math.random()*H,1,1)}
+  };
+  const slate=(txt,sub,col)=>{g.fillStyle='#0d0d0d';g.fillRect(0,0,W,H);g.fillStyle=col;g.font='800 64px Inter, sans-serif';g.textAlign='center';g.fillText(txt,W/2,H/2);g.fillStyle='#8f8f8f';g.font='600 22px Inter, sans-serif';g.fillText(sub,W/2,H/2+42)};
+  if(p==='Ingest'||p==='Ingest Low-bitrate'||p==='BACKUP MC'){cam();
+    if(p==='Ingest Low-bitrate'){g.fillStyle='#FF8A4C';g.fillRect(0,0,W,64);g.fillStyle='#0a0a0a';g.font='800 30px Inter, sans-serif';g.textAlign='center';g.fillText('CONNEXION FAIBLE',W/2,43)}}
+  else if(p==='Ingest Offline')slate('ON REVIENT VITE','scène hors ligne','#fff');
+  else slate(p,'scène du créateur','#2BE07F');
+  g.textAlign='left';g.fillStyle='rgba(0,0,0,.55)';g.fillRect(16,H-46,206,30);g.fillStyle='#C8F169';g.font='700 15px Inter, sans-serif';g.fillText('DÉMO · image simulée',28,H-26);
+}
+function drawGraph(){
+  const c=$('#dGr');if(!c)return;const dpr=devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;if(!w)return;
+  if(c.width!==Math.round(w*dpr)){c.width=Math.round(w*dpr);c.height=Math.round(h*dpr)}
+  const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const s=API.state,sy=API.settings.system,now=Date.now(),pts=s.hist.filter(p=>now-p.t<=60000);
+  const max=Math.max(7000,...pts.map(p=>p.v))*1.05,L=40,y=v=>h-14-(v/max)*(h-22),x=t=>L+(w-L)-(now-t)/60000*(w-L);
+  g.font='600 11px Inter, sans-serif';g.textBaseline='middle';
+  [[sy.lowKbps,'#FF8A4C','faible'],[sy.offKbps,'#FF4436','coupure'],[6000,'#2BE07F','']].forEach(([v,col,lab])=>{g.strokeStyle=col+'88';g.setLineDash([3,4]);g.lineWidth=1;g.beginPath();g.moveTo(L,y(v));g.lineTo(w,y(v));g.stroke();g.fillStyle=col;g.fillText(v>=1000?(v/1000).toFixed(v%1000?1:0).replace('.',',')+'k':String(v),4,y(v))});
+  g.setLineDash([]);
+  if(pts.length<2){g.fillStyle='#5c5c5c';g.textAlign='center';g.fillText(s.server==='on'?'En attente…':'Serveur éteint',L+(w-L)/2,h/2);g.textAlign='left';return}
+  const path=()=>{g.beginPath();pts.forEach((p,i)=>i?g.lineTo(x(p.t),y(p.v)):g.moveTo(x(p.t),y(p.v)))};
+  const last=pts[pts.length-1].v,col=last<sy.lowKbps?'#FF8A4C':'#2BE07F';
+  path();g.lineTo(x(pts[pts.length-1].t),h-14);g.lineTo(x(pts[0].t),h-14);g.closePath();const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,col+'44');gr.addColorStop(1,col+'00');g.fillStyle=gr;g.fill();
+  path();g.strokeStyle=col;g.lineWidth=2.2;g.lineJoin='round';g.stroke();
+}
+
+/* ---------- Réglages ---------- */
+function secretField(id,val,label){return`<div class="field"><label for="${id}">${label}</label><div class="secret"><input class="inp" id="${id}" type="password" readonly value="${esc(val)}">
+  <button class="btn sm ghost" data-show="${id}" aria-label="Afficher">${ic('eye')}Afficher</button><button class="btn sm ghost" data-copy="${id}">${ic('copy')}Copier</button></div></div>`}
+function bindSecrets(root){
+  root.querySelectorAll('[data-show]').forEach(b=>b.onclick=()=>{const i=$('#'+b.dataset.show),sh=i.type==='password';i.type=sh?'text':'password';b.innerHTML=sh?ic('eyeoff')+'Masquer':ic('eye')+'Afficher'});
+  root.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText($('#'+b.dataset.copy).value);toast('Copié')}catch(e){toast('Copie impossible',true)}});
+}
+const PROTO=[['rtmp','RTMP'],['srt','SRT'],['liveu','SRT (LiveU)'],['moblin','SRTLA (Moblin)',1],['irlpro','SRTLA (IRL Pro)',1],['belabox','SRTLA (BELABOX)',1],['rtmps','RTMPS',1]];
+let ingTab='liveu';
+function renderIngests(m){
+  const g=API.settings.ingests[0],h=g.host,k=g.key;
+  const body={
+    rtmp:`${secretField('u1',`rtmp://${h}:1935/live`,'URL du serveur')}${secretField('u2',`live?user=exit&pass=${k}`,'Clé de stream')}<div class="callout">Pour OBS, Prism, Streamlabs ou une appli de téléphone en RTMP.</div>`,
+    srt:`${secretField('u1',`srt://${h}:8890?streamid=publish:live:exit:${k}`,'URL complète')}<div class="callout">Pour Larix, OBS ou tout encodeur SRT. Latence conseillée : <b>2000 ms</b>.</div>`,
+    liveu:`<div class="callout" style="margin-bottom:16px">Dans le <b>portail LiveU Solo</b> : ajouter une destination de type <b>SRT-OUT-Caller-Solo</b>, profil <b>1080p50/60 H.265 No Nulls</b>. L'option <b>LRT</b> doit être activée (abonnement LiveU), sinon le SRT ne marche pas.</div>
+      ${secretField('u1',`${h}:8890`,'URL et port')}${secretField('u2',`publish:live:exit:${k}`,'Stream ID')}
+      <div class="field"><label>Latence</label><div class="unit"><input class="inp num" value="2000" readonly><span>ms</span></div></div>`,
+  }[ingTab]||`<div class="empty">${ic('radio')}<br>Arrive bientôt : il faut d'abord ajouter la réception SRTLA au serveur.</div>`;
+  m.innerHTML=`<div class="page stack"><div><h1>Ingests</h1><p class="lead">Les adresses où la caméra envoie son image. Garde-les pour l'équipe : elles donnent accès à ton live.</p></div>
+    <section class="card"><div class="ch"><h2>${ic('radio')} ${esc(g.name)}</h2><span class="tag l">PRINCIPALE</span></div>
+      <div class="tabs" role="tablist">${PROTO.map(([id,l,soon])=>`<button role="tab" class="${id===ingTab?'on':''}" data-tab="${id}">${l}${soon?'<span class="soon">BIENTÔT</span>':''}</button>`).join('')}</div>
+      ${body}
+      <div class="row" style="margin-top:18px"><button class="btn sm ghost" id="regen">${ic('refresh')}Régénérer la clé</button><span class="note" style="margin:0">L'ancienne clé ne marchera plus : il faudra mettre à jour le LiveU.</span></div>
+    </section></div>`;
+  m.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ingTab=b.dataset.tab;renderIngests(m)});
+  bindSecrets(m);
+  $('#regen').onclick=async()=>{if(API.state.streaming){toast('Impossible pendant un live',true);return}
+    if(await confirmBox('Régénérer la clé ?','La caméra devra être reconfigurée avec la nouvelle adresse.','Régénérer'))API.regenKey(g.id).then(()=>{toast('Nouvelle clé créée');renderIngests(m)})};
+}
+let newDest=null;
+function renderDestinations(m){
+  const S=API.settings,list=S.destinations;
+  const form=newDest?`<form class="form" id="nf">
+    <div class="field"><label for="nN">Nom</label><input class="inp" id="nN" required placeholder="${newDest==='twitch'?'Nom de la chaîne':'Nom de la destination'}"></div>
+    ${newDest==='twitch'?`<div class="field"><label for="nK">Clé de stream Twitch</label><input class="inp" id="nK" type="password" required autocomplete="off" placeholder="live_…"><div class="help">Twitch → Tableau de bord créateur → Paramètres → Stream → Clé de stream principale. Le serveur Twitch le plus proche est choisi tout seul.</div></div>`
+    :newDest==='rtmp'?`<div class="field"><label for="nS">URL du serveur</label><input class="inp" id="nS" required placeholder="rtmp://…"></div><div class="field"><label for="nK">Clé de stream</label><input class="inp" id="nK" type="password" required autocomplete="off"></div>`
+    :`<div class="field"><label for="nS">URL et port</label><input class="inp" id="nS" required placeholder="srt://serveur:port"></div><div class="field"><label for="nK">Stream ID</label><input class="inp" id="nK" type="password" autocomplete="off"></div><div class="field"><label for="nP">Passphrase</label><input class="inp" id="nP" type="password" autocomplete="off"></div>`}
+    <div class="row"><button class="btn g" type="submit">${ic('check')}Ajouter</button><button class="btn ghost" type="button" id="nC">Annuler</button></div></form>`:'';
+  const tl={twitch:'Twitch',rtmp:'RTMP perso',srt:'SRT perso'};
+  m.innerHTML=`<div class="page"><h1>Destinations</h1><p class="lead">Où part le live. Plusieurs destinations actives en même temps = multistream.</p>
+    <div class="grid2" style="grid-template-columns:minmax(260px,.42fr) 1fr;max-width:1180px">
+      <section class="card"><div class="ch"><h2>Nouvelle destination</h2></div><div class="newd">
+        <button class="btn" data-new="twitch" style="background:#9146FF">${ic('twitch')}Twitch</button>
+        <button class="btn" data-new="rtmp">${ic('send')}RTMP perso</button>
+        <button class="btn" data-new="srt">${ic('send')}SRT perso</button></div>${form}</section>
+      <div class="stack">
+      <section class="card"><div class="ch"><h2>Destinations</h2><span class="tag">${list.filter(d=>d.enabled).length} active${list.filter(d=>d.enabled).length>1?'s':''}</span></div>
+        <div class="list">${list.length?list.map(d=>`<div class="dst"><div class="lg ${d.type==='twitch'?'tw':''}">${ic(d.type==='twitch'?'twitch':'send')}</div>
+          <div class="tx"><b>${esc(d.name)}</b><small>${tl[d.type]}${d.type==='twitch'?' · serveur automatique':''} · clé ••••${esc(String(d.key).slice(-4))}</small></div>
+          <label class="switch" title="${d.enabled?'Active':'Inactive'}"><input type="checkbox" data-en="${d.id}" ${d.enabled?'checked':''} aria-label="Activer ${esc(d.name)}"><i></i></label>
+          <button class="ib r" data-del="${d.id}" title="Supprimer" aria-label="Supprimer ${esc(d.name)}">${ic('trash')}</button></div>`).join(''):'<div class="empty">Aucune destination. Ajoute ta chaîne Twitch à gauche.</div>'}</div></section>
+      <section class="card"><div class="ch"><h2>Enhanced Broadcast</h2></div>
+        <div class="field"><label for="eb">Destination Twitch</label><select class="inp" id="eb"><option value="">(aucune)</option>${list.filter(d=>d.type==='twitch'&&d.enabled).map(d=>`<option value="${d.id}" ${S.enhanced===d.id?'selected':''}>${esc(d.name)}</option>`).join('')}</select>
+        <div class="help">Le transcodage Twitch (choix de qualité pour les spectateurs) même sans être partenaire. Une seule destination à la fois.</div></div>
+        <button class="btn sm g" id="ebS">Enregistrer</button></section></div>
+    </div></div>`;
+  m.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>{newDest=b.dataset.new;renderDestinations(m);$('#nN').focus()});
+  const nf=$('#nf');if(nf){$('#nC').onclick=()=>{newDest=null;renderDestinations(m)};
+    nf.onsubmit=e=>{e.preventDefault();API.addDest({type:newDest,name:$('#nN').value.trim(),server:$('#nS')?$('#nS').value.trim():'auto',key:$('#nK').value.trim()}).then(()=>{toast('Destination ajoutée');newDest=null;renderDestinations(m)})}}
+  m.querySelectorAll('[data-en]').forEach(c=>c.onchange=async()=>{
+    if(API.state.streaming){c.checked=!c.checked;toast('Change les destinations hors live',true);return}
+    await API.setDest(c.dataset.en,{enabled:c.checked});renderDestinations(m)});
+  m.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{const d=list.find(x=>x.id===b.dataset.del);
+    if(d.enabled&&API.state.streaming){toast('Impossible : cette destination est en direct',true);return}
+    if(await confirmBox('Supprimer « '+d.name+' » ?','La clé enregistrée sera effacée.','Supprimer'))API.delDest(d.id).then(()=>{toast('Destination supprimée');renderDestinations(m)})});
+  $('#ebS').onclick=()=>{S.enhanced=$('#eb').value;toast('Enhanced Broadcast enregistré')};
+}
+function renderSystem(m){
+  const s=API.settings.system;
+  m.innerHTML=`<div class="page stack"><div><h1>Système</h1><p class="lead">La bascule automatique entre les scènes Ingest, Ingest Low-bitrate et Ingest Offline selon le débit de la caméra.</p></div>
+    <form class="card" id="sf"><div class="ch"><h2>${ic('bot')} Bascule automatique</h2></div>
+      <div class="field"><label>Mode</label><div class="seg" role="radiogroup">${[['disabled','Désactivée'],['streaming','Quand on streame'],['always','Toujours']].map(([v,l])=>`<button type="button" role="radio" aria-checked="${s.mode===v}" class="${s.mode===v?'on':''}" data-mode="${v}">${l}</button>`).join('')}</div>
+        <div class="help">« Quand on streame » : la bascule ne marche que pendant le live. Elle se met en pause quand tu choisis une autre scène à la main.</div></div>
+      <div class="grid2">
+        <div class="field"><label for="sLow">Seuil low-bitrate</label><div class="unit"><input class="inp num" id="sLow" type="number" min="0" step="50" value="${s.lowKbps}"><span>kb/s</span></div><div class="help">En dessous : scène Ingest Low-bitrate.</div></div>
+        <div class="field"><label for="sOff">Seuil coupure</label><div class="unit"><input class="inp num" id="sOff" type="number" min="0" step="10" value="${s.offKbps}"><span>kb/s</span></div><div class="help">En dessous : scène Ingest Offline.</div></div>
+        <div class="field"><label for="sDel">Délai de sortie de la scène Offline</label><div class="unit"><input class="inp num" id="sDel" type="number" min="0" step="0.5" value="${s.offExitDelay}"><span>s</span></div><div class="help">Attente avant de revenir sur la caméra quand le signal revient.</div></div>
+        <div class="field"><label for="sRtt">RTT max (SRT)</label><div class="row" style="flex-wrap:nowrap"><label class="switch"><input type="checkbox" id="sRttOn" ${s.rttOn?'checked':''} aria-label="Tenir compte du RTT"><i></i></label><div class="unit" style="flex:1"><input class="inp num" id="sRtt" type="number" min="100" step="100" value="${s.rttMax}"><span>ms</span></div></div><div class="help">Au-dessus : Low-bitrate, même si le débit est bon (IRLToolkit ne le fait pas).</div></div>
+      </div>
+      <button class="btn g" type="submit">${ic('check')}Enregistrer</button></form>
+    <section class="card"><div class="ch"><h2>${ic('power')} Arrêt automatique</h2></div>
+      <div class="line"><div class="tx"><b>Après 15 minutes d'inactivité</b><small>Sans live et sans personne connectée (site, Régie ou OBS à distance). Alerte « Garder allumé » à 12 minutes.</small></div><span class="tag g">Actif</span></div>
+      <div class="line"><div class="tx"><b>Jamais pendant un live</b><small>Ni pendant une reconnexion du stream. En cas de doute, le serveur reste allumé.</small></div><span class="tag g">Toujours</span></div></section></div>`;
+  let mode=s.mode;
+  m.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;m.querySelectorAll('[data-mode]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b)})});
+  $('#sf').onsubmit=e=>{e.preventDefault();const low=+$('#sLow').value,off=+$('#sOff').value;
+    if(off>=low){toast('Le seuil de coupure doit être plus bas que le seuil low-bitrate',true);return}
+    API.save('system',{mode,lowKbps:low,offKbps:off,offExitDelay:+$('#sDel').value,rttOn:$('#sRttOn').checked,rttMax:+$('#sRtt').value}).then(()=>toast('Réglages enregistrés'))};
+}
+function renderVideo(m){
+  const v=API.settings.video,res=['1920x1080','1664x936','1280x720','1080x1920','896x504','640x360'],fps=[['60','60'],['59.94','59,94'],['50','50 (PAL)'],['30','30'],['29.97','29,97'],['25','25 (PAL)'],['24','24']];
+  const opt=(arr,cur)=>arr.map(a=>{const[val,l]=Array.isArray(a)?a:[a,a.replace('x',' × ')];return`<option value="${val}" ${val===cur?'selected':''}>${l}</option>`}).join('');
+  m.innerHTML=`<div class="page stack"><div><h1>Vidéo</h1><p class="lead">L'image envoyée à Twitch. Pendant un live, seul le débit peut changer.</p></div>
+    <form class="card" id="vf"><div class="grid2">
+      <div class="field"><label for="vB">Résolution de base (canevas)</label><select class="inp" id="vB">${opt(res,v.base)}</select><div class="help">1080 × 1920 pour du vertical.</div></div>
+      <div class="field"><label for="vO">Résolution de sortie</label><select class="inp" id="vO">${opt(res,v.output)}</select></div>
+      <div class="field"><label for="vF">Images par seconde</label><select class="inp" id="vF">${opt(fps,v.fps)}</select></div>
+      <div class="field"><label for="vR">Débit vidéo</label><div class="unit"><input class="inp num" id="vR" type="number" min="1000" max="12000" step="250" value="${v.bitrate}"><span>kb/s</span></div><div class="help">Twitch conseille 6000 kb/s maximum.</div></div>
+      <div class="field"><label for="vE">Encodeur</label><select class="inp" id="vE">${opt([['nvenc','NVIDIA NVENC (carte graphique)'],['x264','x264 (processeur)']],v.encoder)}</select></div>
+    </div><button class="btn g" type="submit">${ic('check')}Enregistrer</button></form></div>`;
+  const lock=()=>{const l=API.state.streaming;['vB','vO','vF','vE'].forEach(id=>$('#'+id).disabled=l)};lock();
+  $('#vf').onsubmit=e=>{e.preventDefault();API.save('video',{base:$('#vB').value,output:$('#vO').value,fps:$('#vF').value,bitrate:+$('#vR').value,encoder:$('#vE').value}).then(()=>toast('Réglages vidéo enregistrés'))};
+}
+function renderAccess(m){
+  const a=API.settings.access;
+  m.innerHTML=`<div class="page stack"><div><h1>Accès</h1><p class="lead">Le mot de passe de l'équipe et la connexion de la Régie iPhone.</p></div>
+    <form class="card" id="pf"><div class="ch"><h2>${ic('key')} Mot de passe de l'équipe</h2></div>
+      <div class="grid2"><div class="field"><label for="p1">Nouveau mot de passe</label><input class="inp" id="p1" type="password" autocomplete="new-password" minlength="6" required></div>
+      <div class="field"><label for="p2">Confirmer</label><input class="inp" id="p2" type="password" autocomplete="new-password" required></div></div>
+      <button class="btn g" type="submit">${ic('check')}Changer le mot de passe</button></form>
+    <section class="card"><div class="ch"><h2>${ic('monitor')} Régie iPhone</h2></div>
+      ${secretField('a1',a.obsUrl,'Adresse')}${secretField('a2',a.obsPass,'Mot de passe OBS')}
+      <div class="row"><button class="btn sm ghost" id="aR">${ic('refresh')}Régénérer le mot de passe OBS</button><span class="note" style="margin:0">Il faudra ensuite mettre à jour la Régie.</span></div></section></div>`;
+  bindSecrets(m);
+  $('#pf').onsubmit=e=>{e.preventDefault();if($('#p1').value!==$('#p2').value){toast('Les deux mots de passe sont différents',true);return}toast(API.demo?'Mode démo : rien n’est changé':'Mot de passe changé');e.target.reset()};
+  $('#aR').onclick=async()=>{if(await confirmBox('Régénérer le mot de passe OBS ?','La Régie iPhone ne pourra plus se connecter tant qu’elle n’est pas mise à jour.','Régénérer')){a.obsPass='demoObs_'+Math.random().toString(36).slice(2,10);renderAccess(m);toast('Nouveau mot de passe créé')}};
+}
+
+/* ---------- OBS ---------- */
+function renderRemote(m){
+  const draw=()=>{const u=API.remoteUrl();
+    if(!u){m.innerHTML=`<div class="page"><h1>OBS à distance</h1><p class="lead">Le vrai OBS du serveur, avec toutes ses fenêtres, la souris et le clavier.</p>${offCard('OBS')}</div>`;bindPower(m);return}
+    if(m.querySelector('.remote'))return;
+    m.innerHTML=`<div class="page"><div class="row" style="justify-content:space-between;margin-bottom:14px"><div><h1>OBS à distance</h1><p class="lead" style="margin:0">Le vrai OBS du serveur, rien n'est verrouillé.</p></div>
+      <div class="row"><button class="btn sm ghost" id="rC">${ic('clip')}Coller du texte</button><button class="btn sm ghost" id="rR">${ic('refresh')}Recharger</button><button class="btn sm" id="rF">${ic('max')}Plein écran</button></div></div>
+      <div class="remote" id="rBox"><img src="${u}" alt="Écran d'OBS sur le serveur">${API.demo?'<span class="demo" style="position:absolute;left:14px;bottom:14px">DÉMO · capture d’OBS</span>':''}</div></div>`;
+    $('#rF').onclick=()=>$('#rBox').requestFullscreen&&$('#rBox').requestFullscreen();
+    $('#rR').onclick=()=>toast('Écran rechargé');$('#rC').onclick=()=>toast(API.demo?'Mode démo':'Texte envoyé');
+  };
+  draw();live=API.on(draw);
+}
+function renderFiles(m){
+  const draw=async()=>{
+    if(API.state.server!=='on'){m.innerHTML=`<div class="page"><h1>Fichiers</h1><p class="lead">Les vidéos, images, sons et LUT du serveur.</p>${offCard('La liste des fichiers')}</div>`;bindPower(m);return}
+    if(m.querySelector('#fT'))return;
+    const files=await API.files();const typ=n=>/\.(webm|mp4|mov|mkv)$/i.test(n)?'film':/\.(png|jpe?g|webp|gif|svg)$/i.test(n)?'image':'file';
+    m.innerHTML=`<div class="page stack" style="max-width:1100px"><div><h1>Fichiers</h1><p class="lead">Le dossier des assets d'OBS. Glisse des fichiers ici pour les envoyer.</p></div>
+      <label class="drop" id="fD">${ic('upload')}<span>Glisse tes fichiers ici ou <b style="color:var(--g)">choisis-les</b></span><input type="file" id="fI" multiple hidden></label>
+      <section class="card"><div class="ch"><h2>${ic('folder')} dependencies</h2><span class="tag">${files.length} fichiers · ${size(files.reduce((a,f)=>a+f.size,0))}</span></div>
+      <table id="fT"><thead><tr><th>Nom</th><th class="num">Taille</th><th>Ajouté le</th><th></th></tr></thead><tbody>
+      ${files.map(f=>`<tr><td><span class="fn">${ic(typ(f.name))}${esc(f.name)}</span></td><td class="num">${size(f.size)}</td><td>${new Date(f.date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'})}</td>
+        <td><div class="acts"><button class="ib" data-dl="${esc(f.name)}" title="Télécharger" aria-label="Télécharger ${esc(f.name)}">${ic('download')}</button><button class="ib r" data-rm="${esc(f.name)}" title="Supprimer" aria-label="Supprimer ${esc(f.name)}">${ic('trash')}</button></div></td></tr>`).join('')}
+      </tbody></table></section></div>`;
+    const up=async list=>{for(const f of list){await API.upload(f);toast('Envoyé : '+f.name)}m.innerHTML='';draw()};
+    const d=$('#fD');d.ondragover=e=>{e.preventDefault();d.classList.add('over')};d.ondragleave=()=>d.classList.remove('over');
+    d.ondrop=e=>{e.preventDefault();d.classList.remove('over');up([...e.dataTransfer.files])};$('#fI').onchange=e=>up([...e.target.files]);
+    m.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>toast(API.demo?'Mode démo : pas de vrai fichier':'Téléchargement…'));
+    m.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{const n=b.dataset.rm;
+      if(await confirmBox('Supprimer « '+n+' » ?','Le fichier est effacé du serveur pour de bon. Une source OBS qui l’utilise n’aura plus d’image.','Supprimer')){await API.remove(n);toast('Supprimé : '+n);m.innerHTML='';draw()}});
+  };
+  draw();live=API.on(()=>{if(API.state.server!=='on'||!m.querySelector('#fT'))draw()});
+}
+function renderCollections(m){
+  const draw=async()=>{
+    if(API.state.server!=='on'){m.innerHTML=`<div class="page"><h1>Collections de scènes</h1><p class="lead">Un jeu complet de scènes et de sources, par créateur ou par événement.</p>${offCard('La liste des collections')}</div>`;bindPower(m);return}
+    const cs=await API.collections();
+    m.innerHTML=`<div class="page stack" style="max-width:900px"><div><h1>Collections de scènes</h1><p class="lead">Un jeu complet de scènes et de sources, par créateur ou par événement.</p></div>
+      <section class="card"><div class="list">${cs.map(c=>`<div class="coll">${ic('layers')}<b>${esc(c.name)}</b>${c.active?'<span class="tag g">Utilisée</span>':''}
+        <div class="row" style="margin-left:auto">${c.active?'':`<button class="btn sm g" data-use="${esc(c.name)}">Utiliser</button>`}<button class="btn sm ghost" data-dup="${esc(c.name)}">${ic('copy')}Dupliquer</button><button class="btn sm ghost" data-ren="${esc(c.name)}">${ic('edit')}Renommer</button></div></div>`).join('')}</div>
+      <div class="note">Pour un nouveau créateur : duplique une collection, puis adapte ses scènes dans OBS à distance.</div></section></div>`;
+    m.querySelectorAll('[data-use]').forEach(b=>b.onclick=async()=>{if(API.state.streaming&&!await confirmBox('Changer de collection en plein live ?','Toutes les scènes vont changer à l’antenne.','Changer quand même'))return;await API.setCollection(b.dataset.use);toast('Collection : '+b.dataset.use);draw()});
+    m.querySelectorAll('[data-dup]').forEach(b=>b.onclick=async()=>{const n=prompt('Nom de la nouvelle collection',b.dataset.dup+' (copie)');if(n&&n.trim()){await API.dupCollection(b.dataset.dup,n.trim());draw()}});
+    m.querySelectorAll('[data-ren]').forEach(b=>b.onclick=async()=>{const n=prompt('Nouveau nom',b.dataset.ren);if(n&&n.trim()){await API.renameCollection(b.dataset.ren,n.trim());draw()}});
+  };
+  draw();live=API.on(()=>{if(API.state.server!=='on'||!m.querySelector('.coll'))draw()});
+}
+
+setInterval(()=>{if(authed()&&$("#tSrv"))renderTop()},1000);
+boot();
+</script>
+</body>
+</html>
