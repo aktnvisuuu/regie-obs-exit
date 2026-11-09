@@ -52,6 +52,7 @@ svg.i{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-widt
 .pill.off i{background:var(--red)}
 .dest{color:var(--sub);font-size:13px;font-weight:600;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .dest b{color:#ddd;font-weight:700}
+.dest{display:inline-flex;align-items:center;gap:6px}.dest svg.i{width:14px;height:14px;color:var(--g)}
 .iconbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:34px;padding:0 13px;border-radius:999px;background:var(--card2);font-weight:700;font-size:13px;color:#ddd;transition:background .15s}
 .iconbtn:hover{background:var(--card3);color:#fff}
 .iconbtn.red{color:var(--red)}
@@ -96,8 +97,9 @@ h1{font-size:30px;letter-spacing:-.035em;line-height:1.1;margin:6px 0 4px;font-w
 .steps span.done{color:#ddd}.steps span.done i{background:var(--g);border-color:var(--g)}
 .steps span.now{color:#fff}.steps span.now i{border-color:var(--orange);border-top-color:transparent;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.dash{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr) minmax(250px,.72fr);gap:16px;align-items:start}
-.col{display:grid;gap:16px;min-width:0}
+.dash{display:grid;grid-template-columns:minmax(0,1.32fr) minmax(0,1fr) minmax(250px,.72fr);gap:16px;align-items:stretch;min-height:calc(100vh - 64px - 42px - 60px)}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.col>.grow{flex:1;display:flex;flex-direction:column}
 .dis{opacity:.38;pointer-events:none;filter:saturate(.4)}
 .mon{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#000}
 .mon canvas{width:100%;height:100%;display:block}
@@ -111,11 +113,11 @@ h1{font-size:30px;letter-spacing:-.035em;line-height:1.1;margin:6px 0 4px;font-w
 .dchip{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 11px;border-radius:999px;background:var(--card2);font-size:13px;font-weight:650;color:#ddd}
 .dchip svg.i{width:15px;height:15px;color:#b18cff}
 .kb{display:flex;align-items:baseline;gap:8px;margin:2px 0 4px}
-.kb b{font-size:54px;font-weight:800;letter-spacing:-.05em;line-height:1}
+.kb b{font-size:54px;font-weight:800;letter-spacing:-.04em;line-height:1}
 .kb span{color:var(--sub);font-weight:700}
 .meta{display:flex;gap:18px;color:var(--sub);font-size:13px;font-weight:600;margin-bottom:16px}
 .meta b{color:#ddd}
-.graph{height:150px;position:relative}
+.graph{flex:1;min-height:170px;position:relative}
 .graph canvas{width:100%;height:100%;display:block}
 .scenes{display:grid;gap:8px}
 .scene{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:0 14px;border-radius:14px;background:var(--card2);font-weight:700;font-size:14.5px;text-align:left;transition:background .15s,transform .1s}
@@ -213,10 +215,13 @@ dialog .row{justify-content:flex-end}
 .toast{background:#fff;color:var(--ink);font-weight:750;font-size:14px;padding:11px 18px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.4);animation:tin .2s var(--ease)}
 .toast.err{background:var(--red);color:var(--ink)}
 @keyframes tin{from{opacity:0;transform:translateY(8px)}}
+.idle{max-width:1480px;margin:14px auto 0;display:flex;align-items:center;gap:12px;background:var(--orange);color:var(--ink);font-weight:750;padding:10px 12px 10px 18px;border-radius:16px;width:calc(100% - 48px)}
+.idle .btn{margin-left:auto;background:var(--ink);color:#fff}.idle .btn:hover{background:#222}
 .banner{display:flex;align-items:center;gap:10px;background:var(--orange);color:var(--ink);font-weight:750;padding:10px 16px;border-radius:14px;margin-bottom:14px}
 
 @media (max-width:1180px){.dash{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.dash>.col:last-child{grid-column:1/-1}.scenes{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
-@media (max-width:900px){.top{gap:14px;padding:0 14px}.brand small,.dest{display:none}.dash,.grid2{grid-template-columns:1fr}.power{flex-wrap:wrap}.power .act{margin-left:0}}
+@media (max-width:980px){.top{flex-wrap:wrap;height:auto;row-gap:6px;padding:10px 14px}.nav{order:3;width:100%;height:auto;overflow-x:auto}.nav .menu{top:46px}.foot{justify-content:flex-start;overflow-x:auto;padding:0 12px}.dash{min-height:0}}
+@media (max-width:900px){.top{gap:14px}.brand small,.dest{display:none}.dash,.grid2{grid-template-columns:1fr}.power{flex-wrap:wrap}.power .act{margin-left:0}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -252,6 +257,7 @@ dialog .row{justify-content:flex-end}
   <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></symbol>
   <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></symbol>
   <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></symbol>
   <symbol id="i-clip" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></symbol>
@@ -284,12 +290,14 @@ function confirmBox(title,text,ok='Confirmer',danger=true){
 
 /* ---------- DemoAPI : un serveur simulé ---------- */
 const AUTO=['Ingest','Ingest Low-bitrate','Ingest Offline'];
+// arrêt auto (spec §9) : alerte à 12 min d'inactivité, extinction à 15 min, JAMAIS pendant un live
+const IDLE_WARN=12*60e3,IDLE_OFF=15*60e3;
 const DemoAPI=(()=>{
   const subs=new Set(),emit=()=>subs.forEach(f=>f());
   const st={server:'off',bootStep:0,bootAt:0,streaming:false,streamStart:0,
     ingest:{name:'LiveU · SRT',kbps:0,rtt:0,live:false,muted:false},
     program:'INTRO',scenes:['INTRO','PAUSE','FIN','Ingest','Ingest Offline','Ingest Low-bitrate','BACKUP MC'],
-    hist:[],uptimeAt:0,idleFrom:Date.now(),camOn:true};
+    hist:[],uptimeAt:0,lastActivity:Date.now(),camOn:true};
   const settings={
     ingests:[{id:'live',name:'Caméra principale',main:true,host:'demo.exit-toolkit.example',key:'exitdemo7Qm2K9pX4v'}],
     destinations:[
@@ -309,6 +317,9 @@ const DemoAPI=(()=>{
     if(st.server==='booting'){const s=Math.floor((now-st.bootAt)/1600);st.bootStep=s;if(s>=4){st.server='on';st.uptimeAt=now;st.camOn=true;toast('Serveur prêt')}}
     if(st.server==='stopping'&&now-st.bootAt>2500){st.server='off';st.streaming=false}
     if(st.server==='on'){
+      // inactivité : un live (ou une reconnexion) compte toujours comme activité → jamais d'arrêt pendant un live
+      if(st.streaming)st.lastActivity=now;
+      else if(now-st.lastActivity>=IDLE_OFF){st.server='stopping';st.bootAt=now;toast('Serveur éteint automatiquement (15 min sans activité)');emit();return}
       const g=st.ingest;
       if(st.camOn){const t=now/1000;let v=4800+900*Math.sin(t/7)+500*Math.sin(t/2.3)+(Math.random()-.5)*600;if(Math.floor(t/45)%3===2&&t%45<10)v=700+Math.random()*250;g.kbps=Math.max(0,v);g.rtt=Math.round(55+25*Math.sin(t/5)+Math.random()*12);g.live=true}
       else{g.kbps=0;g.rtt=0;g.live=false}
@@ -331,7 +342,9 @@ const DemoAPI=(()=>{
       if(on&&st.server==='off'){st.server='booting';st.bootAt=Date.now();st.bootStep=0;emit();return}
       if(!on){if(st.streaming)throw new Error('Impossible : un live est en cours');if(st.server==='on'){st.server='stopping';st.bootAt=Date.now();emit()}}
     },
-    async stream(on){need();st.streaming=on;if(on)st.streamStart=Date.now();emit()},
+    async stream(on){need();st.streaming=on;st.lastActivity=Date.now();if(on)st.streamStart=Date.now();emit()},
+    touch(){st.lastActivity=Date.now()},
+    idleMs(){return st.server==='on'&&!st.streaming?Date.now()-st.lastActivity:0},
     async setScene(n){need();st.program=n;emit()},
     async ingest(a){need();if(a==='mute')st.ingest.muted=true;if(a==='unmute')st.ingest.muted=false;if(a==='fix'){st.ingest.live=false;await new Promise(r=>setTimeout(r,900))}emit()},
     async save(section,data){Object.assign(settings[section],data);emit()},
@@ -405,6 +418,7 @@ function shell(){
       <button class="iconbtn" id="tOut" title="Déconnexion" aria-label="Déconnexion">${ic('logout')}</button>
     </div>
   </header>
+  <div id="idleBar"></div>
   <main id="main"></main>
   <footer class="foot" id="foot"></footer>`;
   document.querySelectorAll('[data-menu]').forEach(m=>{
@@ -434,7 +448,13 @@ function renderTop(){
   const lv=$('#tLive');lv.classList.toggle('hidden',!s.streaming);lv.className='pill live'+(s.streaming?'':' hidden');lv.querySelector('span').textContent='LIVE '+fmtDur(Date.now()-s.streamStart);
   $('#tOff').disabled=!on||s.streaming;$('#tOff').title=s.streaming?'Impossible pendant un live':'Éteindre le serveur';
   const act=API.settings.destinations.filter(d=>d.enabled);
-  $('#tDest').innerHTML=act.length?'→ <b>'+act.map(d=>esc(d.name)).join(' + ')+'</b>':'Aucune destination';
+  $('#tDest').innerHTML=act.length?ic('arrow')+'<b>'+act.map(d=>esc(d.name)).join(' + ')+'</b>':'Aucune destination';
+  const ib=$('#idleBar'),idle=API.idleMs?API.idleMs():0;
+  if(on&&!s.streaming&&idle>=IDLE_WARN){
+    const left=Math.max(0,IDLE_OFF-idle);
+    ib.innerHTML=`<div class="idle" role="alert">${ic('power')}<span>Aucune activité : le serveur s'éteint dans <b class="num">${fmtDur(left)}</b></span><button class="btn sm" id="keep">Garder allumé</button></div>`;
+    $('#keep').onclick=()=>{API.touch();toast('Le serveur reste allumé');renderTop()};
+  }else ib.innerHTML='';
   const f=$('#foot');
   f.innerHTML=`<span class="tag ${s.streaming?'g':'r'}">${s.streaming?'Stream en direct':'Stream hors ligne'}</span>
     <span class="tag ${!on?'':s.ingest.live?(s.ingest.kbps<API.settings.system.lowKbps?'o':'g'):'r'}">${esc(s.ingest.name)} · ${on&&s.ingest.live?fr(s.ingest.kbps)+' kb/s':'hors ligne'}</span>
@@ -470,15 +490,15 @@ function renderDash(m){
       <div class="col">
         <section class="card"><div class="ch"><h2>Program Monitor</h2><span class="tag ch-tag" id="dScn"></span></div>
           <div class="mon"><canvas id="dMon" width="960" height="540"></canvas><div class="ov hidden" id="dMonOv"></div></div></section>
-        <section class="card" id="dStream"></section>
+        <section class="card grow" id="dStream"></section>
       </div>
       <div class="col">
         <section class="card" id="dIng"></section>
-        <section class="card"><div class="ch"><h2>Débit de l'ingest</h2><span class="tag">60 dernières secondes</span></div>
+        <section class="card grow"><div class="ch"><h2>Débit de l'ingest</h2><span class="tag">60 dernières secondes</span></div>
           <div class="graph"><canvas id="dGr"></canvas></div></section>
       </div>
       <div class="col">
-        <section class="card"><div class="ch"><h2>Scènes</h2><span class="tag" id="dMode"></span></div><div class="scenes" id="dScenes"></div>
+        <section class="card grow"><div class="ch"><h2>Scènes</h2><span class="tag" id="dMode"></span></div><div class="scenes" id="dScenes"></div>
           <div class="note">${ic('bot')} = scènes de la bascule auto selon le débit.</div></section>
       </div>
     </div></div>`;
@@ -502,7 +522,7 @@ function dashPower(){
 function dashStream(){
   const s=API.state,el=$('#dStream');if(!el)return;const on=s.server==='on';
   const dests=API.settings.destinations.filter(d=>d.enabled);
-  el.className='card'+(on?'':' dis');
+  el.className='card grow'+(on?'':' dis');
   const key=s.streaming+'|'+on+'|'+dests.map(d=>d.id).join();
   if(el.dataset.k!==key){el.dataset.k=key;
     el.innerHTML=`<div class="ch"><h2>Stream</h2><span class="tag ${s.streaming?'g':'r'}">${s.streaming?'En direct':'Hors ligne'}</span></div>
@@ -524,7 +544,7 @@ function dashIngest(){
     el.innerHTML=`<div class="ch"><h2>Ingest</h2><span class="tag" id="iTag"></span></div>
     <div class="row" style="gap:8px;margin-bottom:8px;color:#ddd;font-weight:700">${ic('radio')}<span>${esc(g.name)}</span><span class="tag l" style="height:20px;font-size:10.5px">PRINCIPALE</span></div>
     <div class="kb"><b class="num" id="iKb">–</b><span>kb/s</span></div>
-    <div class="meta"><span>RTT <b class="num" id="iRtt">–</b></span><span>Son <b>${g.muted?'coupé':'actif'}</b></span></div>
+    <div class="meta"><span>RTT <b class="num" id="iRtt">–</b></span><span>Son <b>${!on?'–':g.muted?'coupé':'actif'}</b></span></div>
     <div class="row">${g.muted?`<button class="btn sm g" data-ia="unmute">${ic('mic')}Rétablir le son</button>`:`<button class="btn sm" data-ia="mute">${ic('micoff')}Couper le son</button>`}
       <button class="btn sm" data-ia="fix" title="Relance la source caméra si l'image est bloquée">${ic('wrench')}Réparer</button></div>`;
     el.querySelectorAll('[data-ia]').forEach(b=>b.onclick=()=>API.ingest(b.dataset.ia).then(()=>toast({mute:'Son de la caméra coupé',unmute:'Son de la caméra rétabli',fix:'Source caméra relancée'}[b.dataset.ia])))}
@@ -534,12 +554,12 @@ function dashIngest(){
 }
 function dashScenes(){
   const s=API.state,el=$('#dScenes');if(!el)return;const on=s.server==='on';
-  el.parentElement.className='card'+(on?'':' dis');
+  el.parentElement.className='card grow'+(on?'':' dis');
   const md={disabled:'Bascule auto : désactivée',streaming:'Bascule auto : en live',always:'Bascule auto : toujours'}[API.settings.system.mode];
   $('#dMode').textContent=md;
-  const key=s.program+'|'+s.scenes.join();
+  const key=on+'|'+s.program+'|'+s.scenes.join();
   if(el.dataset.k===key)return;el.dataset.k=key;
-  el.innerHTML=s.scenes.map(n=>`<button class="scene${n===s.program?' on':''}" data-sc="${esc(n)}">${ic(AUTO.includes(n)?'bot':'image')}<span>${esc(n)}</span>${n===s.program?'<span class="tag air">ON AIR</span>':''}</button>`).join('');
+  el.innerHTML=s.scenes.map(n=>`<button class="scene${on&&n===s.program?' on':''}" data-sc="${esc(n)}">${ic(AUTO.includes(n)?'bot':'image')}<span>${esc(n)}</span>${on&&n===s.program?'<span class="tag air">ON AIR</span>':''}</button>`).join('');
   el.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>API.setScene(b.dataset.sc).catch(e=>toast(e.message,true)));
   const t=$('#dScn');if(t){t.textContent=on?s.program:'—'}
 }
@@ -573,7 +593,7 @@ function drawGraph(){
   const s=API.state,sy=API.settings.system,now=Date.now(),pts=s.hist.filter(p=>now-p.t<=60000);
   const max=Math.max(7000,...pts.map(p=>p.v))*1.05,L=40,y=v=>h-14-(v/max)*(h-22),x=t=>L+(w-L)-(now-t)/60000*(w-L);
   g.font='600 11px Inter, sans-serif';g.textBaseline='middle';
-  [[sy.lowKbps,'#FF8A4C','faible'],[sy.offKbps,'#FF4436','coupure'],[6000,'#2BE07F','']].forEach(([v,col,lab])=>{g.strokeStyle=col+'88';g.setLineDash([3,4]);g.lineWidth=1;g.beginPath();g.moveTo(L,y(v));g.lineTo(w,y(v));g.stroke();g.fillStyle=col;g.fillText(v>=1000?(v/1000).toFixed(v%1000?1:0).replace('.',',')+'k':String(v),4,y(v))});
+  [[sy.lowKbps,'#FF8A4C','faible'],[sy.offKbps,'#FF4436','coupure'],[6000,'#5a5a5a','']].forEach(([v,col,lab])=>{g.strokeStyle=col+'88';g.setLineDash(lab?[3,4]:[1,0]);g.lineWidth=1;g.beginPath();g.moveTo(L,y(v));g.lineTo(w,y(v));g.stroke();g.fillStyle=col;g.fillText(v>=1000?(v/1000).toFixed(v%1000?1:0).replace('.',',')+'k':String(v),4,y(v))});
   g.setLineDash([]);
   if(pts.length<2){g.fillStyle='#5c5c5c';g.textAlign='center';g.fillText(s.server==='on'?'En attente…':'Serveur éteint',L+(w-L)/2,h/2);g.textAlign='left';return}
   const path=()=>{g.beginPath();pts.forEach((p,i)=>i?g.lineTo(x(p.t),y(p.v)):g.moveTo(x(p.t),y(p.v)))};
@@ -589,7 +609,7 @@ function bindSecrets(root){
   root.querySelectorAll('[data-show]').forEach(b=>b.onclick=()=>{const i=$('#'+b.dataset.show),sh=i.type==='password';i.type=sh?'text':'password';b.innerHTML=sh?ic('eyeoff')+'Masquer':ic('eye')+'Afficher'});
   root.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText($('#'+b.dataset.copy).value);toast('Copié')}catch(e){toast('Copie impossible',true)}});
 }
-const PROTO=[['rtmp','RTMP'],['srt','SRT'],['liveu','SRT (LiveU)'],['moblin','SRTLA (Moblin)',1],['irlpro','SRTLA (IRL Pro)',1],['belabox','SRTLA (BELABOX)',1],['rtmps','RTMPS',1]];
+const PROTO=[['rtmp','RTMP'],['srt','SRT'],['liveu','SRT (LiveU)'],['moblin','SRTLA (Moblin)',1],['irlpro','SRTLA (IRL Pro)',1],['belabox','SRTLA (BELABOX)',1]];
 let ingTab='liveu';
 function renderIngests(m){
   const g=API.settings.ingests[0],h=g.host,k=g.key;
@@ -750,6 +770,7 @@ function renderCollections(m){
 }
 
 setInterval(()=>{if(authed()&&$("#tSrv"))renderTop()},1000);
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(API.touch&&authed())API.touch()},{passive:true}));
 boot();
 </script>
 </body>
