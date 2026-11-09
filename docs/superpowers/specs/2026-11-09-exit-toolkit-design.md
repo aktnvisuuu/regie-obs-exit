@@ -1,6 +1,6 @@
 # EXIT Toolkit : notre IRLToolkit à nous (conception)
 
-Date : 9 novembre 2026 · Demandé par Arthur (EXIT) · Statut : à valider
+Date : 9 novembre 2026 · Demandé par Arthur (EXIT) · Statut : à valider (relu)
 
 ## 1. Intention
 
@@ -109,6 +109,7 @@ DA : celle de la Régie. Fond `#0a0a0a`, cartes `#151515` / `#1f1f1f`, vert EXIT
 
 ## 7. Ce qui est décidé
 
+- Arrêt auto après 15 min d'inactivité, jamais pendant un live (§9).
 - Approche B, outil pour EXIT uniquement, un seul live à la fois, un compte et un mot de passe pour l'équipe, Twitch par clé de stream, on repart de zéro, même DA que la Régie, petit service permanent gratuit accepté.
 - Arthur veut un vrai OBS complet, accessible et pilotable.
 - Le prototype `cloud/` (MediaMTX + agent + install) sert de base au serveur.
@@ -121,6 +122,9 @@ DA : celle de la Régie. Fond `#0a0a0a`, cartes `#151515` / `#1f1f1f`, vert EXIT
 - L'hébergeur : on écrit une interface « fournisseur » avec une première implémentation factice pour tester, la vraie viendra quand l'hébergeur sera choisi.
 - Les tests : faux OBS pour le site, vrai OBS en local pour le serveur, comme pour la Régie.
 
-## 9. Questions ouvertes
+## 9. Arrêt automatique (décidé par Arthur)
 
-- Arrêt automatique du serveur : voir la réponse d'Arthur ci-dessous.
+- **JAMAIS d'arrêt pendant un live.** Tant que la sortie stream est active, y compris pendant une reconnexion, ou qu'une destination est en cours d'envoi, le compte à rebours n'existe pas. Règle absolue : en cas de doute (état d'OBS illisible, agent qui ne répond pas), on **n'éteint pas**.
+- Hors live : le serveur s'éteint après **15 minutes d'inactivité**, c'est-à-dire sans stream ET sans personne connectée (site, Régie, ou OBS à distance).
+- À **12 minutes**, une alerte apparaît sur le site, avec un bouton « Garder allumé » qui remet le compteur à zéro.
+- L'arrêt passe par le portier (API de l'hébergeur), comme le bouton Éteindre : serveur arrêté, disque conservé.
